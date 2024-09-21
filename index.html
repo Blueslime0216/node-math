@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8"> <!-- 문자 인코딩 설정 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- 반응형 디자인을 위한 뷰포트 설정 -->
+    <title>Interactive Grid Canvas</title> <!-- 문서 제목 -->
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: hsl(0, 0%, 10%);
+            flex-direction: column;
+        }
+        canvas {
+            border: 2px solid hsl(0, 0%, 90%);
+        }
+        button {
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="shortcuts">Shortcuts</button> <!-- 단축키 리스트 버튼 -->
+    <button id="addNodeBtn">Add Node</button> <!-- 노드 추가 버튼 -->
+    <canvas id="gridCanvas" width="816" height="624"></canvas> <!-- 그리드 캔버스 -->
+
+    <script>
+        // 단축키 버튼을 누른 경우 alert 창으로 단축키 목록 표시
+        document.getElementById('shortcuts').addEventListener('click', () => {
+            alert('< Shortcuts >\n\n' +
+                '시점 이동 : 마우스 휠 드래그\n' +
+                '확대/축소 : 마우스 휠 스크롤\n' +
+                '노드 선택 : 노드 좌클릭\n' +
+                '노드 선택 취소 : 빈 공간 클릭\n' +
+                '다중 선택 : Shift + 좌클릭\n' +
+                '다중 선택 중 단일 선택 : 노드 좌클릭\n' +
+                '노드 이동 : 노드 좌클릭 후 드래그\n' +
+                '격자에 맞춰서 이동 : Ctrl + 드래그\n' +
+                '(노드 이동 중 시점 이동 가능)'
+            );
+        });
+    </script>
+    <script>
+        const canvas = document.getElementById('gridCanvas'); // 캔버스 요소 선택
+        const ctx = canvas.getContext('2d'); // 2D 컨텍스트 가져오기
+
+        let gridSpacing = 40; // 그리드 간격 설정
+        let moveX = 0; // X 축 이동값 초기화
+        let moveY = 0; // Y 축 이동값 초기화
+        const zoomFactor = 1.1; // 줌 배율 설정
+        let isLeftMouseDown = false; // 좌클릭 상태 플래그
+        let isDragging = false; // 드래그 상태 플래그
+        let isMouseDragging = false; // 마우스 드래그 상태 플래그
+        let isWheelDragging = false; // 휠 드래그 상태 플래그
+        let selectedNodes = []; // 선택된 노드들 배열
+        let moveXStart, moveYStart; // 이동 시작 좌표 저장
+
+        const nodes = []; // 노드 배열 초기화
+
+        // Node 클래스 정의
+        class Node {
+            constructor(x, y) {
+                this.id = Math.random().toString(36).substring(2, 18); // 고유 ID 생성
+                this.initialX = x; // 초기 X 좌표
+                this.initialY = y; // 초기 Y 좌표
+                this.offsetX = 0; // X 방향 오프셋 초기화
+                this.offsetY = 0; // Y 방향 오프셋 초기화
+                this.width = 3; // 노드 너비
+                this.height = 5; // 노드 높이
+                this.color = 'normal'; // 기본 색상
+            }
+
+            get x() {
+                return this.initialX + moveX; // 현재 X 좌표 계산
+            }
+
+            get y() {
+                return this.initialY + moveY; // 현재 Y 좌표 계산
+            }
+
+            draw() {
+                const size = gridSpacing * 2.5; // 노드 크기
+                const borderThickness = gridSpacing / 20; // 경계 두께
+                const borderRadius = borderThickness * 2; // 경계 반경
+
+                ctx.strokeStyle = 'hsl(210, 15%, 100%)'; // 기본 테두리 색상
+                ctx.lineWidth = borderThickness; // 테두리 두께 설정
+
+                if (selectedNodes.includes(this)) {
+                    ctx.fillStyle = 'hsl(210, 70%, 65%)'; // 선택된 노드 색상
+                    ctx.strokeStyle = 'yellow'; // 선택된 노드 테두리 색상
+                    ctx.lineWidth = borderThickness * 2; // 선택된 노드 두께
+                } else if (this.color === 'hover') {
+                    ctx.fillStyle = 'hsl(210, 70%, 55%)'; // 호버 색상
+                } else {
+                    ctx.fillStyle = 'hsl(210, 70%, 50%)'; // 일반 색상
+                }
+                ctx.beginPath(); // 새로운 경로 시작
+                const width = this.width * gridSpacing; // 노드 너비 계산
+                const height = this.height * gridSpacing; // 노드 높이 계산
+                ctx.roundRect(this.x - width / 2, this.y - height / 2, width, height, borderRadius); // 둥근 사각형 그리기
+                ctx.fill(); // 색칠
+                ctx.stroke(); // 테두리 그리기
+            }
+
+            contains(mx, my) {
+                // 마우스 위치가 노드 내부인지 확인
+                return mx >= this.x - this.width * gridSpacing / 2 && mx <= this.x + this.width * gridSpacing / 2 &&
+                       my >= this.y - this.height * gridSpacing / 2 && my <= this.y + this.height * gridSpacing / 2;
+            }
+        }
+
+        function updateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // 캔버스 초기화
+            drawGrid(); // 그리드 그리기
+            nodes.forEach(node => node.draw()); // 모든 노드 그리기
+        }
+
+        function drawGrid() {
+            ctx.lineWidth = 1; // 그리드 선 두께 설정
+
+            // 수직 그리드 선 그리기
+            for (let x = moveX % gridSpacing; x < canvas.width; x += gridSpacing) {
+                ctx.lineWidth = 2; // 수직 선 두께
+                ctx.strokeStyle = 'hsl(0, 0%, 25%)'; // 선 색상
+                ctx.beginPath(); // 새로운 경로 시작
+                ctx.moveTo(x, 0); // 선 시작점
+                ctx.lineTo(x, canvas.height); // 선 끝점
+                ctx.stroke(); // 선 그리기
+            }
+            // 수평 그리드 선 그리기
+            for (let y = moveY % gridSpacing; y < canvas.height; y += gridSpacing) {
+                ctx.strokeStyle = 'hsl(0, 0%, 25%)'; // 선 색상
+                ctx.beginPath(); // 새로운 경로 시작
+                ctx.moveTo(0, y); // 선 시작점
+                ctx.lineTo(canvas.width, y); // 선 끝점
+                ctx.stroke(); // 선 그리기
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (isDragging) {
+                isMouseDragging = true; // 드래그 상태 설정
+            } else {
+                isMouseDragging = false; // 드래그 해제
+            }
+
+            if (isWheelDragging) {
+                // 휠 드래그 시 이동
+                moveX = e.clientX - moveXStart;
+                moveY = e.clientY - moveYStart;
+            } else if (isDragging) {
+                selectedNodes.forEach(node => {
+                    if (e.ctrlKey) {
+                        // Ctrl 키를 누르고 있는 경우 그리드에 맞춰 이동
+                        node.initialX = Math.round((e.offsetX - node.offsetX - moveX) / gridSpacing) * gridSpacing;
+                        node.initialY = Math.round((e.offsetY - node.offsetY - moveY) / gridSpacing) * gridSpacing;
+                    } else {
+                        // 일반 드래그
+                        node.initialX = e.offsetX - node.offsetX - moveX;
+                        node.initialY = e.offsetY - node.offsetY - moveY;
+                    }
+                });
+            }
+            updateCanvas(); // 캔버스 업데이트
+        }
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault(); // 기본 휠 이벤트 방지
+
+            const mouseX = e.offsetX; // 마우스 X 좌표
+            const mouseY = e.offsetY; // 마우스 Y 좌표
+
+            const zoomAmount = e.deltaY > 0 ? 1 / zoomFactor : zoomFactor; // 줌 배율 결정
+            gridSpacing *= zoomAmount; // 그리드 간격 조정
+
+            // 마우스 위치에 따라 이동 조정
+            moveX += (mouseX - moveX) * (1 - zoomAmount);
+            moveY += (mouseY - moveY) * (1 - zoomAmount);
+
+            // 모든 노드의 오프셋 및 위치 조정
+            nodes.forEach(node => {
+                node.offsetX *= zoomAmount;
+                node.offsetY *= zoomAmount;
+                node.initialX *= zoomAmount;
+                node.initialY *= zoomAmount;
+            });
+
+            updateCanvas(); // 캔버스 업데이트
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            const mx = e.offsetX; // 마우스 클릭 위치 X 좌표
+            const my = e.offsetY; // 마우스 클릭 위치 Y 좌표
+
+            if (e.button === 1) {
+                isWheelDragging = true; // 휠 드래그 시작
+                moveXStart = e.clientX - moveX; // 이동 시작 X 좌표
+                moveYStart = e.clientY - moveY; // 이동 시작 Y 좌표
+            } else if (e.button === 0) {
+                isLeftMouseDown = true; // 좌클릭 상태 설정
+                const clickedNode = nodes.find(node => node.contains(mx, my)); // 클릭한 노드 찾기
+
+                if (e.shiftKey) {
+                    // Shift + 좌클릭 시 노드 선택
+                    if (clickedNode && !selectedNodes.includes(clickedNode)) {
+                        selectedNodes.push(clickedNode); // 선택된 노드에 추가
+                        console.log("다중 선택");
+                    }
+                } else {
+                    // 일반 좌클릭 시 클릭한 노드가 선택되지 않은 경우 해당 노드 선택
+                    if (clickedNode) {
+                        if (!selectedNodes.includes(clickedNode)) {
+                            selectedNodes = [clickedNode]; // 단일 선택
+                            console.log("단일 선택");
+                        } else {
+                            // 드래그인지 단일 클릭인지 판단
+                            let timer;
+                            timer = setInterval(() => {
+                                console.log("드래그 대기" + isMouseDragging + " " + !isLeftMouseDown);
+                                // 드래그 시 드래그라고 판단
+                                if (isMouseDragging) {
+                                    clearInterval(timer); // 타이머 중지
+                                    console.log("드래그");
+                                }
+                                // 클릭 해제 시 단일 선택이라고 판단
+                                if (!isLeftMouseDown) {
+                                    selectedNodes = [clickedNode]; // 단일 선택
+                                    console.log("단일 선택");
+                                    updateCanvas(); // 캔버스 업데이트
+                                    clearInterval(timer); // 타이머 중지
+                                }
+                            }, 10); // 대기 시간
+                        }
+
+                    } else {
+                        selectedNodes = []; // 클릭한 노드가 없을 경우 배열 비우기
+                        console.log("선택 해제");
+                    }
+                }
+
+                // 드래그 시작
+                if (clickedNode) {
+                    isDragging = true; // 드래그 상태 설정
+                    selectedNodes.forEach(node => {
+                        node.offsetX = mx - node.x; // X 방향 오프셋 계산
+                        node.offsetY = my - node.y; // Y 방향 오프셋 계산
+                    });
+                }
+
+                updateCanvas(); // 캔버스 업데이트
+            }
+        });
+
+        window.addEventListener('mousemove', handleMouseMove); // 마우스 이동 시 핸들러 설정
+
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 0) {
+                isDragging = false; // 드래그 상태 해제
+                isLeftMouseDown = false; // 좌클릭 상태 해제
+            }
+            if (e.button === 1) isWheelDragging = false; // 휠 드래그 상태 해제
+            updateCanvas(); // 캔버스 업데이트
+        });
+
+        document.getElementById('addNodeBtn').addEventListener('click', () => {
+            const centerX = (canvas.width / 2 - moveX); // 캔버스 중앙 X 좌표
+            const centerY = (canvas.height / 2 - moveY); // 캔버스 중앙 Y 좌표
+            const node = new Node(centerX, centerY); // 새로운 노드 생성
+            nodes.push(node); // 노드 배열에 추가
+            updateCanvas(); // 캔버스 업데이트
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const mx = e.offsetX; // 마우스 X 좌표
+            const my = e.offsetY; // 마우스 Y 좌표
+            const hoveredNode = nodes.find(node => node.contains(mx, my)); // 호버 중인 노드 찾기
+
+            nodes.forEach(node => {
+                if (selectedNodes.includes(node)) {
+                    node.color = 'selected'; // 선택된 노드 색상 변경
+                } else if (node === hoveredNode) {
+                    node.color = 'hover'; // 호버된 노드 색상 변경
+                } else {
+                    node.color = 'normal'; // 기본 색상
+                }
+            });
+            updateCanvas(); // 캔버스 업데이트
+        });
+
+        updateCanvas(); // 초기 캔버스 업데이트
+    </script>
+
+</body>
+</html>

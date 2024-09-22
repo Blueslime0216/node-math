@@ -42,7 +42,9 @@
                 '다중 선택 중 단일 선택 : 노드 좌클릭\n' +
                 '노드 이동 : 노드 좌클릭 후 드래그\n' +
                 '격자에 맞춰서 이동 : Ctrl + 드래그\n' +
-                '(노드 이동 중 시점 이동 가능)'
+                '(노드 이동 중 시점 이동 가능)\n' +
+                '(다중 선택 시 즉시 드래그 안 되게 설정)\n' +
+                '(겹치는 경우 마지막으로 선택된 노드가 위로 올라옴)'
             );
         });
     </script>
@@ -144,33 +146,6 @@
             }
         }
 
-        function handleMouseMove(e) {
-            if (isDragging) {
-                isMouseDragging = true; // 드래그 상태 설정
-            } else {
-                isMouseDragging = false; // 드래그 해제
-            }
-
-            if (isWheelDragging) {
-                // 휠 드래그 시 이동
-                moveX = e.clientX - moveXStart;
-                moveY = e.clientY - moveYStart;
-            } else if (isDragging) {
-                selectedNodes.forEach(node => {
-                    if (e.ctrlKey) {
-                        // Ctrl 키를 누르고 있는 경우 그리드에 맞춰 이동
-                        node.initialX = Math.round((e.offsetX - node.offsetX - moveX) / gridSpacing) * gridSpacing;
-                        node.initialY = Math.round((e.offsetY - node.offsetY - moveY) / gridSpacing) * gridSpacing;
-                    } else {
-                        // 일반 드래그
-                        node.initialX = e.offsetX - node.offsetX - moveX;
-                        node.initialY = e.offsetY - node.offsetY - moveY;
-                    }
-                });
-            }
-            updateCanvas(); // 캔버스 업데이트
-        }
-
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault(); // 기본 휠 이벤트 방지
 
@@ -205,7 +180,15 @@
                 moveYStart = e.clientY - moveY; // 이동 시작 Y 좌표
             } else if (e.button === 0) {
                 isLeftMouseDown = true; // 좌클릭 상태 설정
-                const clickedNode = nodes.find(node => node.contains(mx, my)); // 클릭한 노드 찾기
+                const clickedNode = nodes.slice().reverse().find(node => node.contains(mx, my)); // 클릭한 노드 찾기
+                console.log(nodes);
+                if (clickedNode) {
+                    const index = nodes.indexOf(clickedNode); // 선택된 노드의 인덱스 찾기
+                    if (index !== -1) {
+                        nodes.splice(index, 1); // 선택된 노드를 배열에서 제거
+                        nodes.push(clickedNode); // 선택된 노드를 배열의 최하위로 추가
+                    }
+                }
 
                 if (e.shiftKey) {
                     // Shift + 좌클릭 시 노드 선택
@@ -218,6 +201,7 @@
                     if (clickedNode) {
                         if (!selectedNodes.includes(clickedNode)) {
                             selectedNodes = [clickedNode]; // 단일 선택
+                            
                             console.log("단일 선택");
                         } else {
                             // 드래그인지 단일 클릭인지 판단
@@ -238,7 +222,6 @@
                                 }
                             }, 10); // 대기 시간
                         }
-
                     } else {
                         selectedNodes = []; // 클릭한 노드가 없을 경우 배열 비우기
                         console.log("선택 해제");
@@ -246,7 +229,7 @@
                 }
 
                 // 드래그 시작
-                if (clickedNode) {
+                if (clickedNode && !e.shiftKey) {
                     isDragging = true; // 드래그 상태 설정
                     selectedNodes.forEach(node => {
                         node.offsetX = mx - node.x; // X 방향 오프셋 계산
@@ -258,7 +241,32 @@
             }
         });
 
-        window.addEventListener('mousemove', handleMouseMove); // 마우스 이동 시 핸들러 설정
+        window.addEventListener('mousemove', (e) =>{
+            if (isDragging) {
+                isMouseDragging = true; // 드래그 상태 설정
+            } else {
+                isMouseDragging = false; // 드래그 해제
+            }
+
+            if (isWheelDragging) {
+                // 휠 드래그 시 이동
+                moveX = e.clientX - moveXStart;
+                moveY = e.clientY - moveYStart;
+            } else if (isDragging) {
+                selectedNodes.forEach(node => {
+                    if (e.ctrlKey) {
+                        // Ctrl 키를 누르고 있는 경우 그리드에 맞춰 이동
+                        node.initialX = Math.round((e.offsetX - node.offsetX - moveX) / gridSpacing) * gridSpacing;
+                        node.initialY = Math.round((e.offsetY - node.offsetY - moveY) / gridSpacing) * gridSpacing;
+                    } else {
+                        // 일반 드래그
+                        node.initialX = e.offsetX - node.offsetX - moveX;
+                        node.initialY = e.offsetY - node.offsetY - moveY;
+                    }
+                });
+            }
+            updateCanvas(); // 캔버스 업데이트
+        }); // 마우스 이동 시 핸들러 설정
 
         window.addEventListener('mouseup', (e) => {
             if (e.button === 0) {
@@ -280,7 +288,7 @@
         canvas.addEventListener('mousemove', (e) => {
             const mx = e.offsetX; // 마우스 X 좌표
             const my = e.offsetY; // 마우스 Y 좌표
-            const hoveredNode = nodes.find(node => node.contains(mx, my)); // 호버 중인 노드 찾기
+            const hoveredNode = nodes.slice().reverse().find(node => node.contains(mx, my)); // 호버 중인 노드 찾기
 
             nodes.forEach(node => {
                 if (selectedNodes.includes(node)) {

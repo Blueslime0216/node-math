@@ -28,7 +28,7 @@
 
     <button id="shortcuts">Shortcuts</button> <!-- 단축키 리스트 버튼 -->
     <button id="addNodeBtn">Add Node</button> <!-- 노드 추가 버튼 -->
-    <canvas id="gridCanvas" width="816" height="624"></canvas> <!-- 그리드 캔버스 -->
+    <canvas id="editor" width="816" height="624"></canvas> <!-- 그리드 캔버스 -->
 
     <script>
         // 단축키 버튼을 누른 경우 alert 창으로 단축키 목록 표시
@@ -50,100 +50,138 @@
         });
     </script>
     <script>
-        const canvas = document.getElementById('gridCanvas'); // 캔버스 요소 선택
-        const ctx = canvas.getContext('2d'); // 2D 컨텍스트 가져오기
+        // ============================================================
+        // 각종 변수 선언
+        // ============================================================
+        // 요소 가져오기
+        const canvas = document.getElementById('editor'); // 캔버스 가져오기
+            const ctx = canvas.getContext('2d'); // 2D 렌더링 컨텍스트 가져오기
 
-        let gridSpacing = 40; // 그리드 간격 설정
-        let moveX = 0; // X 축 이동값 초기화
-        let moveY = 0; // Y 축 이동값 초기화
-        const zoomFactor = 1.1; // 줌 배율 설정
-        let isLeftMouseDown = false; // 좌클릭 상태 플래그
-        let isDragging = false; // 드래그 상태 플래그
-        let isMouseDragging = false; // 마우스 드래그 상태 플래그
-        let isWheelDragging = false; // 휠 드래그 상태 플래그
-        let selectedNodes = []; // 선택된 노드들 배열
-        let moveXStart, moveYStart; // 이동 시작 좌표 저장
+        // 그리드 관련
+        let gridSpacing = 40; // 그리드 간격 설정 (픽셀 단위)
+        const minGridSpacing = 10; // 그리드 간격의 최소값 설정
+        const maxGridSpacing = 100; // 그리드 간격의 최대값 설정
+        // 시점 조작 관련
+        let moveX = 0; // X축 방향으로의 이동량
+        let moveY = 0; // Y축 방향으로의 이동량
+        const zoomFactor = 1.1; // 줌 인/아웃 시 사용할 배율
+        // 마우스 관련
+        let isLeftMouseDown = false; // 왼쪽 마우스 버튼 클릭 상태 (드래그/단일 선택 판단을 위한)
+        let isDragging = false; // 드래그 중인지 여부
+        let isMouseDragging = false; // 마우스가 실재로 움직이는 드래그 중인지 여부
+        let isWheelDragging = false; // 마우스 휠 클릭으로 드래그 중인지 여부
+        let moveXStart, moveYStart; // 드래그 시작 지점의 X, Y 좌표
 
-        const nodes = [];
+        // 드래그 선택 관련
+        let isSelecting = false; // 드래그 선택 중인지 여부
+        let selectionStartX,
+            selectionStartY,
+            selectionEndX,
+            selectionEndY; // 선택 영역의 시작과 끝 좌표
+        let selectionStartInitialX,
+            selectionStartInitialY,
+            selectionEndInitialX,
+            selectionEndInitialY; // 선택 영역들의 초기 좌표
+        let selectionInterval; // 선택 영역 박스 애니메이션을 위한 인터벌을 저장해둘 변수
 
-        let isSelecting = false; // 드래그 선택 상태
-        let selectionStartX, selectionStartY; // 드래그 시작 위치
-        let selectionEndX, selectionEndY; // 드래그 종료 위치
-        let selectionInterval; // 인터벌을 저장할 변수
-
+        // 노드 관련
+        let selectedNodes = []; // 선택된 노드들을 저장할 배열
+        let nodes = []; // 노드들을 저장할 배열
+        // 노드 클래스
         class Node {
             constructor(x, y) {
-                this.id = Math.random().toString(36).substring(2, 18);
-                this.initialX = x;
-                this.initialY = y;
-                this.offsetX = 0;
-                this.offsetY = 0;
-                this.width = 3;
-                this.height = 5;
-                this.color = 'normal';
+                this.id = Math.random().toString(36).substring(2, 18); // ID 생성
+                
+                this.width = 3; // 노드의 너비 (그리드 단위)
+                this.height = 5; // 노드의 높이 (그리드 단위)
+
+                this.color = 'normal'; // 노드의 스타일
+
+                this.initialX = x; // 초기 X 좌표
+                this.initialY = y; // 초기 Y 좌표
+
+                this.offsetX = 0; // X축 방향 오프셋
+                this.offsetY = 0; // Y축 방향 오프셋
+
+                this.connectTo = null; // 해당 노드가 연결한 노드
+                this.connectFrom = null; // 해당 노드로 연결된 노드
             }
 
             get x() {
-                return this.initialX + moveX;
+                return this.initialX + moveX; // 현재 X 좌표를 계산해서 반환
             }
 
             get y() {
-                return this.initialY + moveY;
+                return this.initialY + moveY; // 현재 Y 좌표를 계산해서 반환
             }
 
             draw() {
-                const size = gridSpacing * 2.5;
-                const borderThickness = gridSpacing / 20;
-                const borderRadius = borderThickness * 2;
+                const borderThickness = gridSpacing / 20; // 테두리 두께 계산
+                const borderRadius = borderThickness * 2; // 테두리 둥글기 계산
 
-                ctx.strokeStyle = 'hsl(210, 15%, 100%)';
-                ctx.lineWidth = borderThickness;
+                ctx.strokeStyle = 'hsl(210, 15%, 100%)'; // 테두리 색상 설정
+                ctx.lineWidth = borderThickness; // 테두리 두께 설정
 
-                if (selectedNodes.includes(this)) {
+                // 색상 설정
+                if (this.color === 'selected') { // 노드가 선택된 상태라면
                     ctx.fillStyle = 'hsl(210, 70%, 65%)';
                     ctx.strokeStyle = 'yellow';
                     ctx.lineWidth = borderThickness * 2;
-                } else if (this.color === 'hover') {
+                } else if (this.color === 'hover') { // 호버 상태라면
                     ctx.fillStyle = 'hsl(210, 70%, 55%)';
-                } else {
+                } else { // 기본 상태이면
                     ctx.fillStyle = 'hsl(210, 70%, 50%)';
                 }
-                ctx.beginPath();
-                const width = this.width * gridSpacing;
-                const height = this.height * gridSpacing;
-                ctx.roundRect(this.x - width / 2, this.y - height / 2, width, height, borderRadius);
-                ctx.fill();
-                ctx.stroke();
+
+                // 노드 그리기
+                ctx.beginPath(); // 그리기 시작
+                const width = this.width * gridSpacing; // 너비 계산
+                const height = this.height * gridSpacing; // 높이 계산
+                ctx.roundRect(this.x - width / 2, this.y - height / 2, width, height, borderRadius); // 둥근 사각형 형태로 그리기
+                ctx.fill(); // 노드 내부 채우기
+                ctx.stroke(); // 노드 테두리 그리기
             }
 
-            contains(mx, my) {
+            contains(mx, my) { // 주어진 좌표가 노드 내부인지 확인
                 return mx >= this.x - this.width * gridSpacing / 2 && mx <= this.x + this.width * gridSpacing / 2 &&
                        my >= this.y - this.height * gridSpacing / 2 && my <= this.y + this.height * gridSpacing / 2;
             }
         }
 
+
+
+        // ============================================================
+        // 함수 선언
+        // ============================================================
+        // 최종적인 캔버스를 그리는 함수
         function updateCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawGrid();
-            nodes.forEach(node => node.draw());
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // 캔버스 지우기
+
+            drawGrid(); // 그리드 그리기
+
+            nodes.forEach(node => node.draw()); // 모든 노드 그리기
+
             if (isSelecting) {
-                drawSelectionBox();
+                drawSelectionBox(); // 드래그로 선택된 영역 그리기
             }
         }
 
+        // 그리드를 그리는 함수
         function drawGrid() {
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 1; // 그리드 선 두께 설정
+            ctx.strokeStyle = 'hsl(0, 0%, 25%)'; // 그리드 선 색상 설정
+            // 그리드 간격이 최소값보다 작으면 최소값으로, 최대값보다 크면 최대값으로 설정
+            gridSpacing = Math.max(minGridSpacing, Math.min(maxGridSpacing, gridSpacing));
 
+            // 수직선 그리기
             for (let x = moveX % gridSpacing; x < canvas.width; x += gridSpacing) {
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = 'hsl(0, 0%, 25%)';
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
                 ctx.lineTo(x, canvas.height);
                 ctx.stroke();
             }
+            // 수평선 그리기
             for (let y = moveY % gridSpacing; y < canvas.height; y += gridSpacing) {
-                ctx.strokeStyle = 'hsl(0, 0%, 25%)';
                 ctx.beginPath();
                 ctx.moveTo(0, y);
                 ctx.lineTo(canvas.width, y);
@@ -151,20 +189,60 @@
             }
         }
 
+        // 드래그로 선택된 영역을 그리는 함수
+        function drawSelectionBox() {
+            const x = Math.min(selectionStartX, selectionEndX); // 시작점 X 좌표
+            const y = Math.min(selectionStartY, selectionEndY); // 시작점 Y 좌표
+            const width = Math.abs(selectionEndX - selectionStartX); // 너비 계산
+            const height = Math.abs(selectionEndY - selectionStartY); // 높이 계산
+
+            ctx.strokeStyle = 'rgba(0, 150, 255, 0.8)'; // 드래그 선택 영역 테두리 색상
+            ctx.lineWidth = 4; // 드래그 선택 영역 테두리 두께
+            ctx.setLineDash([6,4]); // 점선 패턴 설정
+            ctx.lineDashOffset = -(Date.now() / 1000).toString().split('.')[1]?.slice(0, 1) * 2 || 0; // 점선 오프셋 설정
+            ctx.strokeRect(x, y, width, height); // 드래그 선택 영역 그리기
+            ctx.setLineDash([]); // 점선 패턴 해제
+        }
+
+        // 드래그로 선택된 영역 내의 노드들을 선택하는 함수
+        function selectNodesInBox() {
+            const x1 = Math.min(selectionStartX, selectionEndX); // 시작점 X 좌표
+            const y1 = Math.min(selectionStartY, selectionEndY); // 시작점 Y 좌표
+            const x2 = Math.max(selectionStartX, selectionEndX); // 끝점 X 좌표
+            const y2 = Math.max(selectionStartY, selectionEndY); // 끝점 Y 좌표
+
+            // 선택 영역 내의 노드들을 찾아 선택
+            selectedNodes = nodes.filter(node => { // 모든 노드들 중에서
+                const nodeX = node.x; // 이 노드의 X 좌표
+                const nodeY = node.y; // 이 노드의 Y 좌표
+                const nodeWidth = node.width * gridSpacing / 2; // 이 노드의 너비
+                const nodeHeight = node.height * gridSpacing / 2; // 이 노드의 높이
+
+                // 선택 영역 내에 있는지 계산해서 반환
+                return (nodeX + nodeWidth >= x1 && nodeX - nodeWidth <= x2 &&
+                        nodeY + nodeHeight >= y1 && nodeY - nodeHeight <= y2);
+            });
+        }
+
+
+        // ============================================================
+        // 이벤트 리스너 등록
+        // ============================================================
+        // 마우스 휠을 돌렸을 때
         canvas.addEventListener('wheel', (e) => {
-            e.preventDefault(); // 기본 휠 이벤트 방지
+            e.preventDefault(); // 기본 스크롤 동작 방지
 
-            const mouseX = e.offsetX; // 마우스 X 좌표
-            const mouseY = e.offsetY; // 마우스 Y 좌표
+            const mouseX = e.offsetX; // 스크롤이 발생하고 있는 지금 마우스 X 좌표
+            const mouseY = e.offsetY; // 스크롤이 발생하고 있는 지금 마우스 Y 좌표
 
-            const zoomAmount = e.deltaY > 0 ? 1 / zoomFactor : zoomFactor; // 줌 배율 결정
-            gridSpacing *= zoomAmount; // 그리드 간격 조정
+            const zoomAmount = e.deltaY > 0 ? 1 / zoomFactor : zoomFactor; // 줌 방향(in/out) 계산
+            gridSpacing *= zoomAmount; // 그리드 간격 변경(= 줌 조정)
 
-            // 마우스 위치에 따라 이동 조정
+            // 마우스 위치를 기준으로 줌이 조정되도록 시점 이동
             moveX += (mouseX - moveX) * (1 - zoomAmount);
             moveY += (mouseY - moveY) * (1 - zoomAmount);
 
-            // 모든 노드의 오프셋 및 위치 조정
+            // 모든 노드의 위치 조정 (너비와 높이는 gridSpacing에 의해 자동 조정됨)
             nodes.forEach(node => {
                 node.offsetX *= zoomAmount;
                 node.offsetY *= zoomAmount;
@@ -172,55 +250,36 @@
                 node.initialY *= zoomAmount;
             });
 
+            // 드래그 선택 영역 시작점 위치 조정
+            if (isSelecting) {
+                selectionStartX = (selectionStartX - mouseX) * zoomAmount + mouseX;
+                selectionStartY = (selectionStartY - mouseY) * zoomAmount + mouseY;
+            }
+
             updateCanvas(); // 캔버스 업데이트
         });
 
-        function drawSelectionBox() {
-            const x = Math.min(selectionStartX, selectionEndX);
-            const y = Math.min(selectionStartY, selectionEndY);
-            const width = Math.abs(selectionEndX - selectionStartX);
-            const height = Math.abs(selectionEndY - selectionStartY);
-
-            ctx.strokeStyle = 'rgba(0, 150, 255, 0.8)';
-            ctx.lineWidth = 4;
-            ctx.setLineDash([6,4]);
-            let lineDashOffsetValue = (Date.now() / 1000).toString();
-            lineDashOffsetValue = lineDashOffsetValue.split('.')[1].slice(0, 1);
-            console.log(lineDashOffsetValue);
-            ctx.lineDashOffset = -lineDashOffsetValue*2;
-            ctx.strokeRect(x, y, width, height);
-            ctx.setLineDash([]);
-        }
-        function selectNodesInBox() {
-            const x1 = Math.min(selectionStartX, selectionEndX);
-            const y1 = Math.min(selectionStartY, selectionEndY);
-            const x2 = Math.max(selectionStartX, selectionEndX);
-            const y2 = Math.max(selectionStartY, selectionEndY);
-
-            selectedNodes = nodes.filter(node => {
-                const nodeX = node.x;
-                const nodeY = node.y;
-                const nodeWidth = node.width * gridSpacing / 2;
-                const nodeHeight = node.height * gridSpacing / 2;
-
-                return (nodeX + nodeWidth >= x1 && nodeX - nodeWidth <= x2 &&
-                        nodeY + nodeHeight >= y1 && nodeY - nodeHeight <= y2);
-            });
-        }
-
+        // 마우스 클릭 시
         canvas.addEventListener('mousedown', (e) => {
             const mx = e.offsetX; // 마우스 클릭 위치 X 좌표
             const my = e.offsetY; // 마우스 클릭 위치 Y 좌표
+            selectionStartInitialX = selectionStartX; // 드래그 선택 시작점 초기 X 좌표
+            selectionStartInitialY = selectionStartY; // 드래그 선택 시작점 초기 Y 좌표
+            selectionEndInitialX = selectionEndX; // 드래그 선택 끝점 초기 X 좌표
+            selectionEndInitialY = selectionEndY; // 드래그 선택 끝점 초기 Y 좌표
 
 
-            if (e.button === 1) {
+            if (e.button === 1) { // 마우스 휠을 누른 거라면
                 isWheelDragging = true; // 휠 드래그 시작
                 moveXStart = e.clientX - moveX; // 이동 시작 X 좌표
                 moveYStart = e.clientY - moveY; // 이동 시작 Y 좌표
-            } else if (e.button === 0) {
-                isLeftMouseDown = true; // 좌클릭 상태 설정
-                const clickedNode = nodes.slice().reverse().find(node => node.contains(mx, my)); // 클릭한 노드 찾기
-                console.log(nodes);
+
+            } else if (e.button === 0) { // 마우스 좌클릭을 한 거라면
+                isLeftMouseDown = true; // 드래그/단일 선택 판단을 위한 좌클릭 상태 설정
+
+                // 클릭된 노드가 있나 찾기
+                const clickedNode = nodes.slice().reverse().find(node => node.contains(mx, my));
+                // 노드가 클릭되면 앞에 보이게 하기
                 if (clickedNode) {
                     const index = nodes.indexOf(clickedNode); // 선택된 노드의 인덱스 찾기
                     if (index !== -1) {
@@ -229,54 +288,52 @@
                     }
                 }
 
-                if (e.shiftKey) {
-                    // Shift + 좌클릭 시 노드 선택
-                    if (clickedNode && !selectedNodes.includes(clickedNode)) {
-                        selectedNodes.push(clickedNode); // 선택된 노드에 추가
-                        console.log("다중 선택");
+                if (e.shiftKey) { // Shift가 같이 눌린 경우 다중 선택 기능
+                    if (clickedNode && !selectedNodes.includes(clickedNode)) { // 선택된 노드가 있고, selectedNodes에 없다면
+                        selectedNodes.push(clickedNode); // 선택된 노드들에 추가
+                    } else if (clickedNode && selectedNodes.includes(clickedNode)) {// 선택된 노드가 있고, selectedNodes에 있다면
+                        selectedNodes = selectedNodes.filter(node => node !== clickedNode); // 선택된 노드들에서 제거
                     }
-                } else {
-                    // 일반 좌클릭 시 클릭한 노드가 선택되지 않은 경우 해당 노드 선택
-                    if (clickedNode) {
+                    
+                } else { // 좌클릭만 한 경우
+                    if (clickedNode) { // 클릭된 노드가 있으면
+                        // 선택된 노드가 selectedNodes에 있는 노드가 아니면(= 다중 선택 취소 -> 단일 선택)
                         if (!selectedNodes.includes(clickedNode)) {
                             selectedNodes = [clickedNode]; // 단일 선택
-                            
-                            console.log("단일 선택");
-                        } else {
+
+                        } else {// 선택된 노드가 selectedNodes에 있는 노드라면(= 다중 선택 된 단일 요소 클릭)
                             // 드래그인지 단일 클릭인지 판단
-                            let timer;
-                            timer = setInterval(() => {
-                                console.log("드래그 대기" + isMouseDragging + " " + !isLeftMouseDown);
+                            let waitInterval = setInterval(() => {
                                 // 드래그 시 드래그라고 판단
                                 if (isMouseDragging) {
-                                    clearInterval(timer); // 타이머 중지
-                                    console.log("드래그");
+                                    clearInterval(waitInterval); // 인터벌 삭제
                                 }
+
                                 // 클릭 해제 시 단일 선택이라고 판단
                                 if (!isLeftMouseDown) {
                                     selectedNodes = [clickedNode]; // 단일 선택
-                                    console.log("단일 선택");
-                                    updateCanvas(); // 캔버스 업데이트
-                                    clearInterval(timer); // 타이머 중지
+
+                                    clearInterval(waitInterval); // 인터벌 삭제
                                 }
-                            }, 10); // 대기 시간
+                            }, 10); // 일정 시간 간격으로 확인
                         }
-                    } else {
-                        selectedNodes = []; // 클릭한 노드가 없을 경우 배열 비우기
-                        console.log("선택 해제");
+                    } else { // 클릭된 노드가 없으면(= 빈 공간 클릭)
+                        selectedNodes = []; // 배열 비우기
                     }
                 }
 
                 // 드래그 시작
-                if (clickedNode && !e.shiftKey) {
+                if (clickedNode && !e.shiftKey) { // 클릭된 노드가 있고, Shift가 눌리지 않았다면 드래그라고 판단
                     isDragging = true; // 드래그 상태 설정
+
+                    // 선택된 노드들의 오프셋을 각각 계산
                     selectedNodes.forEach(node => {
                         node.offsetX = mx - node.x; // X 방향 오프셋 계산
                         node.offsetY = my - node.y; // Y 방향 오프셋 계산
                     });
                 }
                 
-                // 드래그 선택 시작
+                // 드래그 선택이 시작되면
                 if (e.button === 0 && !e.shiftKey && !isDragging) {
                     isSelecting = true;
                     selectionStartX = e.offsetX;
@@ -284,96 +341,140 @@
                     selectionEndX = e.offsetX;
                     selectionEndY = e.offsetY;
 
-                    // 0.1초 간격으로 캔버스를 업데이트
+                    // 선택 영역 박스 애니메이션을 주기 위해 인터벌 설정
                     selectionInterval = setInterval(() => {
+                        // 0.1초 간격으로 캔버스를 업데이트
                         updateCanvas();
                     }, 100); // 100ms = 0.1초
-                } else {
-                    updateCanvas(); // 캔버스 업데이트
+                } else { // 드래그 선택이 아니라면 그냥 캔버스 업데이트
+                    updateCanvas();
                 }
             }
         });
 
-        window.addEventListener('mousemove', (e) =>{
-            if (isDragging) {
-                isMouseDragging = true; // 드래그 상태 설정
-            } else {
-                isMouseDragging = false; // 드래그 해제
-            }
-
-            if (isWheelDragging) {
-                // 휠 드래그 시 이동
-                moveX = e.clientX - moveXStart;
-                moveY = e.clientY - moveYStart;
-            } else if (isDragging) {
-                selectedNodes.forEach(node => {
-                    if (e.ctrlKey) {
-                        // Ctrl 키를 누르고 있는 경우 그리드에 맞춰 이동
-                        node.initialX = Math.round((e.offsetX - node.offsetX - moveX) / gridSpacing) * gridSpacing;
-                        node.initialY = Math.round((e.offsetY - node.offsetY - moveY) / gridSpacing) * gridSpacing;
-                    } else {
-                        // 일반 드래그
-                        node.initialX = e.offsetX - node.offsetX - moveX;
-                        node.initialY = e.offsetY - node.offsetY - moveY;
-                    }
-                });
-            }
-            updateCanvas(); // 캔버스 업데이트
-        }); // 마우스 이동 시 핸들러 설정
-
-        window.addEventListener('mouseup', (e) => {
-            if (e.button === 0) {
-                isDragging = false; // 드래그 상태 해제
-                isLeftMouseDown = false; // 좌클릭 상태 해제
-            }
-            if (e.button === 1) isWheelDragging = false; // 휠 드래그 상태 해제
-
-            if (isSelecting) {
-                isSelecting = false;
-                selectNodesInBox();
-                updateCanvas();
-                // 드래그 선택이 종료되면 인터벌 제거
-                clearInterval(selectionInterval);
-            }
-
-            updateCanvas(); // 캔버스 업데이트
-        });
-
-        document.getElementById('addNodeBtn').addEventListener('click', () => {
-            const centerX = (canvas.width / 2 - moveX);
-            const centerY = (canvas.height / 2 - moveY);
-            const node = new Node(centerX, centerY);
-            nodes.push(node);
-            updateCanvas();
-        });
-
+        // 마우스가 움직이면(캔버스 측 처리)
         canvas.addEventListener('mousemove', (e) => {
             const mx = e.offsetX; // 마우스 X 좌표
             const my = e.offsetY; // 마우스 Y 좌표
             const hoveredNode = nodes.slice().reverse().find(node => node.contains(mx, my)); // 호버 중인 노드 찾기
 
+            // 마우스가 노드 위에 있으면 노드 스타일 변경
             nodes.forEach(node => {
-                if (selectedNodes.includes(node)) {
-                    node.color = 'selected'; // 선택된 노드 색상 변경
-                } else if (node === hoveredNode) {
-                    node.color = 'hover'; // 호버된 노드 색상 변경
-                } else {
-                    node.color = 'normal'; // 기본 색상
+                if (selectedNodes.includes(node)) { // 선택된 노드라면
+                    node.color = 'selected';
+                } else if (node === hoveredNode) { // 호버 중인 노드라면
+                    node.color = 'hover';
+                } else { // 아니라면
+                    node.color = 'normal';
                 }
             });
 
+            // 드래그 중인 경우
             if (isSelecting) {
-                selectionEndX = e.offsetX;
-                selectionEndY = e.offsetY;
-                selectNodesInBox();
-                updateCanvas();
+                selectionEndX = e.offsetX; // 드래그 선택 끝점 X 좌표
+                selectionEndY = e.offsetY; // 드래그 선택 끝점 Y 좌표
+
+                selectNodesInBox(); // 드래그로 선택된 영역 내의 노드들을 선택처리
             }
             
             updateCanvas(); // 캔버스 업데이트
         });
 
+        // 마우스가 움직이면
+        window.addEventListener('mousemove', (e) =>{
+            // 마우스가 실재로 움직이는 드래그 중인지 판단
+            if (isDragging) {
+                isMouseDragging = true;
+            } else {
+                isMouseDragging = false;
+            }
+
+            // 휠 드래그 중인지 판단
+            if (isWheelDragging) { // 휠 드래그 중인 경우
+                // 시점 이동 처리
+                moveX = e.clientX - moveXStart; // X축 방향 이동량 계산
+                moveY = e.clientY - moveYStart; // Y축 방향 이동량 계산
+                
+                // 드래그 선택 중인 경우, 드래그 박스의 시작 지점도 이동
+                if (isSelecting) {
+                    selectionStartX = e.offsetX + (selectionStartInitialX - selectionEndInitialX);
+                    selectionStartY = e.offsetY + (selectionStartInitialY - selectionEndInitialY);
+                }
+            } else if (isDragging) { // 좌클릭 드래그 중인 경우
+                // 선택된 노드들의 위치를 마우스 위치에 따라 이동
+                selectedNodes.forEach(node => {
+                    // Ctrl 키를 누르고 있는 경우 그리드에 맞춰 이동
+                    if (e.ctrlKey) {
+                        node.initialX = Math.round((e.offsetX - node.offsetX - moveX) / gridSpacing) * gridSpacing;
+                        node.initialY = Math.round((e.offsetY - node.offsetY - moveY) / gridSpacing) * gridSpacing;
+                    } else { // 아니라면 그냥 이동
+                        node.initialX = e.offsetX - node.offsetX - moveX;
+                        node.initialY = e.offsetY - node.offsetY - moveY;
+                    }
+                });
+            }
+
+
+            updateCanvas(); // 캔버스 업데이트
+        }); // 마우스 이동 시 핸들러 설정
+
+        // 마우스 클릭을 뗐을 때
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 0) { // 좌클릭을 뗐을 때
+                isDragging = false; // 드래그 상태 해제
+                isLeftMouseDown = false; // 좌클릭 상태 해제
+
+                // 드래그 선택이 종료되는 거라면
+                if (isSelecting) {
+                    isSelecting = false; // 드래그 선택 상태 해제
+
+                    selectNodesInBox(); // 드래그로 선택된 영역 내의 노드들을 선택
+
+                    clearInterval(selectionInterval); // 인터벌 제거
+                }
+            } else if (e.button === 1) { // 마우스 휠을 뗐을 때
+                isWheelDragging = false; // 휠 드래그 상태 해제
+            }
+
+            updateCanvas(); // 캔버스 업데이트
+        });
+
+        // del키를 누른 경우
+        window.addEventListener('keydown', (e) => {
+            // 노드 삭제 기능
+            if (e.key === 'Delete') { // del키를 누른 경우
+                nodes = nodes.filter(node => !selectedNodes.includes(node)); // 선택된 노드들을 제외한 노드들만 남기기
+                selectedNodes = []; // 선택된 노드들 비우기
+
+                updateCanvas(); // 캔버스 업데이트
+            }
+
+            // 전부 선택 기능
+            if (e.ctrlKey && e.key === 'a') { // Ctrl + A를 누른 경우
+                e.preventDefault(); // 기본 동작 방지
+                
+                selectedNodes = nodes.slice(); // 모든 노드들을 선택
+
+                updateCanvas(); // 캔버스 업데이트
+            }
+        });
+        
+
+        // 노드 추가 버튼을 누른 경우
+        document.getElementById('addNodeBtn').addEventListener('click', () => {
+            const centerX = (canvas.width / 2 - moveX);
+            const centerY = (canvas.height / 2 - moveY);
+            const node = new Node(centerX, centerY);
+
+            nodes.push(node);
+            
+            updateCanvas();
+        });
+
+        // ============================================================
+        // 코드 실행
+        // ============================================================
         updateCanvas(); // 초기 캔버스 업데이트
     </script>
-
 </body>
 </html>

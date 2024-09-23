@@ -28,6 +28,7 @@
 
     <button id="shortcuts">Shortcuts</button> <!-- 단축키 리스트 버튼 -->
     <button id="addNodeBtn">Add Node</button> <!-- 노드 추가 버튼 -->
+    <button id="addNodeBtn2">Add Node2</button> <!-- 노드 추가 버튼 -->
     <canvas id="editor" width="816" height="624"></canvas> <!-- 그리드 캔버스 -->
 
     <script>
@@ -53,6 +54,13 @@
         // ============================================================
         // 각종 변수 선언
         // ============================================================
+        // 디버깅용 (디버깅)
+        let debug = {
+            show_nodeCenter: false, // 노드 중심(좌표) 표시
+            show_nodeHitbox: false, // 노드 판정 영역 표시
+            show_socketHitbox: false, // 소켓 판정 영역 표시
+        }
+
         // 요소 가져오기
         const canvas = document.getElementById('editor'); // 캔버스 가져오기
             const ctx = canvas.getContext('2d'); // 2D 렌더링 컨텍스트 가져오기
@@ -67,13 +75,16 @@
         const zoomFactor = 1.1; // 줌 인/아웃 시 사용할 배율
         // 마우스 관련
         let isLeftMouseDown = false; // 왼쪽 마우스 버튼 클릭 상태 (드래그/단일 선택 판단을 위한)
-        let isDragging = false; // 드래그 중인지 여부
         let isMouseDragging = false; // 마우스가 실재로 움직이는 드래그 중인지 여부
         let isWheelDragging = false; // 마우스 휠 클릭으로 드래그 중인지 여부
         let moveXStart, moveYStart; // 드래그 시작 지점의 X, Y 좌표
+        
+        // 드래그 조작 관련
+        let isNodeDragging = false; // 노드를 드래그 중인지 여부
 
-        // 드래그 선택 관련
-        let isSelecting = false; // 드래그 선택 중인지 여부
+        let issocketDragging = false; // 소켓을 드래그 중인지 여부
+
+        let isDragSelecting = false; // 드래그 선택 중인지 여부
         let selectionStartX,
             selectionStartY,
             selectionEndX,
@@ -87,13 +98,27 @@
         // 노드 관련
         let selectedNodes = []; // 선택된 노드들을 저장할 배열
         let nodes = []; // 노드들을 저장할 배열
+        let borderThickness = gridSpacing / 20; // 노드 테두리 두께 계산
+        // 소켓 관련
+        let hoveredSocket = { // 호버 중인 소켓
+            type: null,
+            index: null,
+            ParentNode: null,
+        };
+        let selectedSocket = { // 선택된 소켓
+            type: null,
+            index: null,
+            ParentNode: null,
+        };
         // 노드 클래스
         class Node {
-            constructor(x, y) {
+            constructor(x, y, type) {
                 this.id = Math.random().toString(36).substring(2, 18); // ID 생성
+                this.type = type; // 노드 타입
                 
+                // 홀수로 설정하자(그래야 그리드에 예쁘게 맞춰짐)
                 this.width = 3; // 노드의 너비 (그리드 단위)
-                this.height = 5; // 노드의 높이 (그리드 단위)
+                this.height = 3; // 노드의 높이 (그리드 단위)
 
                 this.color = 'normal'; // 노드의 스타일
 
@@ -103,8 +128,31 @@
                 this.offsetX = 0; // X축 방향 오프셋
                 this.offsetY = 0; // Y축 방향 오프셋
 
-                this.connectTo = null; // 해당 노드가 연결한 노드
-                this.connectFrom = null; // 해당 노드로 연결된 노드
+                this.connections = {
+                    input: {
+                        socketCount: 0, // 입력 소켓 개수
+                        nodes : [], // 입력 소켓에 연결된 노드들을 저장할 배열
+                    },
+                    output: {
+                        socketCount: 0, // 출력 소켓 개수
+                        nodes: [], // 출력 소켓에 연결된 노드들을 저장할 배열
+                    }
+                };
+                if (this.type === 'value') { // 노드 타입이 변수 노드라면
+                    this.connections.input.socketCount = 0;
+                    this.connections.output.socketCount = 1;
+                } else if (this.type === 'operator') { // 노드 타입이 연산 노드라면
+                    this.connections.input.socketCount = 2;
+                    this.connections.output.socketCount = 1;
+                } else if (this.type === 'test') { // 노드 타입이 함수 노드라면
+                    this.connections.input.socketCount = 0;
+                    this.connections.output.socketCount = 1;
+                }
+                // 동적으로 소켓 개수만큼 빈 배열 생성
+                this.connections.input.nodes = Array.from({ length: this.connections.input.socketCount }, () => ({ id: null, index: null, state: null }));
+                this.connections.output.nodes = Array.from({ length: this.connections.output.socketCount }, () => ({ id: null, index: null, state: null }));
+                // 높이 다시 계산
+                this.height = Math.max(this.connections.input.socketCount, this.connections.output.socketCount) + 2;
             }
 
             get x() {
@@ -116,17 +164,19 @@
             }
 
             draw() {
-                const borderThickness = gridSpacing / 20; // 테두리 두께 계산
+                borderThickness = gridSpacing / 20; // 테두리 두께 계산
                 const borderRadius = borderThickness * 2; // 테두리 둥글기 계산
 
                 ctx.strokeStyle = 'hsl(210, 15%, 100%)'; // 테두리 색상 설정
                 ctx.lineWidth = borderThickness; // 테두리 두께 설정
 
                 // 색상 설정
-                if (this.color === 'selected') { // 노드가 선택된 상태라면
+                if (selectedNodes.includes(this)) { // 노드가 선택된 상태라면
                     ctx.fillStyle = 'hsl(210, 70%, 65%)';
                     ctx.strokeStyle = 'yellow';
                     ctx.lineWidth = borderThickness * 2;
+                } else if (hoveredSocket.ParentNode === this) { // 소켓이 호버 중인 상태라면
+                    ctx.fillStyle = 'hsl(210, 70%, 50%)'; // 기본 상태의 색상
                 } else if (this.color === 'hover') { // 호버 상태라면
                     ctx.fillStyle = 'hsl(210, 70%, 55%)';
                 } else { // 기본 상태이면
@@ -137,14 +187,113 @@
                 ctx.beginPath(); // 그리기 시작
                 const width = this.width * gridSpacing; // 너비 계산
                 const height = this.height * gridSpacing; // 높이 계산
-                ctx.roundRect(this.x - width / 2, this.y - height / 2, width, height, borderRadius); // 둥근 사각형 형태로 그리기
+                ctx.roundRect(this.x - width / 2, this.y - gridSpacing/2, width, height, borderRadius); // 둥근 사각형 형태로 그리기
                 ctx.fill(); // 노드 내부 채우기
                 ctx.stroke(); // 노드 테두리 그리기
+
+                // 가로선을 그려서 헤더 분할
+                ctx.beginPath(); // 그리기 시작
+                ctx.moveTo(this.x - width / 2, this.y + gridSpacing/2); // 시작점 설정
+                ctx.lineTo(this.x + width / 2, this.y + gridSpacing/2); // 끝점 설정
+                ctx.stroke(); // 가로선 그리기
+
+                // 소켓 그리기
+                // (인풋 소켓은 왼쪽, 아웃풋 소켓은 오른쪽에 동그란 원 모양으로 그리기)
+                const socketRadius = gridSpacing / 6; // 소켓 반지름 계산
+                const socketY = this.y + gridSpacing/2*3; // 소켓의 초기 Y 좌표 계산
+                // 인풋 소켓 그리기
+                for (let i = 0; i < this.connections.input.socketCount; i++) {
+                    const socketX = this.x - (this.width * gridSpacing)/2; // 인풋 소켓의 X 좌표 계산
+                    ctx.beginPath();
+                    ctx.arc(socketX, socketY + i * gridSpacing, socketRadius, 0, 2 * Math.PI); // 원 그리기
+                    if (hoveredSocket === undefined || !(hoveredSocket.type === 'input' && hoveredSocket.index === i && hoveredSocket.ParentNode === this)) { // 기본 상태라면
+                        ctx.fillStyle = 'hsl(210, 70%, 30%)';
+                    } else if (hoveredSocket.type === 'input' && hoveredSocket.index === i && hoveredSocket.ParentNode === this) { // 만약 hoveredSocket이 이 소켓이면
+                        ctx.fillStyle = 'hsl(210, 70%, 80%)';
+                    }
+                    ctx.fill(); // 소켓 내부 채우기
+                    ctx.stroke(); // 소켓 테두리 그리기
+                }
+                // 아웃풋 소켓 그리기
+                for (let i = 0; i < this.connections.output.socketCount; i++) {
+                    const socketX = this.x + (this.width * gridSpacing)/2; // 아웃풋 소켓의 X 좌표 계산
+                    ctx.beginPath();
+                    ctx.arc(socketX, socketY + i * gridSpacing, socketRadius, 0, 2 * Math.PI); // 원 그리기
+                    if (hoveredSocket === undefined || !(hoveredSocket.type === 'output' && hoveredSocket.index === i && hoveredSocket.ParentNode === this)) { // 기본 상태라면
+                        ctx.fillStyle = 'hsl(210, 70%, 30%)';
+                    } else if (hoveredSocket.type === 'output' && hoveredSocket.index === i && hoveredSocket.ParentNode === this) { // 만약 hoveredSocket이 이 소켓이면
+                        ctx.fillStyle = 'hsl(210, 70%, 80%)';
+                    }
+                    ctx.fill(); // 소켓 내부 채우기
+                    ctx.stroke(); // 소켓 테두리 그리기
+                }
+
+                // 반투명하게 노드 판정 영역을 박스로 표시 (디버깅)
+                if (debug.show_nodeHitbox) {
+                    ctx.strokeStyle = 'red'; // 테두리 색상 설정
+                    ctx.lineWidth = 2; // 테두리 두께 설정
+                    ctx.strokeRect(this.x - width / 2, this.y - gridSpacing/2, width, height); // 노드 판정 영역 그리기
+                    // 반투명하게 안을 채우기
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'; // 채우기 색상 설정
+                    ctx.fillRect(this.x - width / 2, this.y - gridSpacing/2, width, height); // 노드 판정 영역 채우기
+                }
+                // 반투명하게 소켓 판정 영역을 원으로 표시 (디버깅)
+                if (debug.show_socketHitbox) {
+                    ctx.strokeStyle = 'red'; // 테두리 색상 설정
+                    ctx.lineWidth = 2; // 테두리 두께 설정
+                    // 인풋 소켓 판정 영역 그리기
+                    for (let i = 0; i < this.connections.input.socketCount; i++) {
+                        const socketX = this.x - (this.width * gridSpacing)/2; // 인풋 소켓의 X 좌표 계산
+                        ctx.beginPath(); // 그리기 시작
+                        ctx.arc(socketX, socketY + i * gridSpacing, socketRadius, 0, 2 * Math.PI); // 원 그리기
+                        ctx.stroke(); // 소켓 테두리 그리기
+                        // 반투명하게 안을 채우기
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'; // 채우기 색상 설정
+                        ctx.fill(); // 소켓 내부 채우기
+                    }
+                    // 아웃풋 소켓 판정 영역 그리기
+                    for (let i = 0; i < this.connections.output.socketCount; i++) {
+                        const socketX = this.x + (this.width * gridSpacing)/2; // 아웃풋 소켓의 X 좌표 계산
+                        ctx.beginPath(); // 그리기 시작
+                        ctx.arc(socketX, socketY + i * gridSpacing, socketRadius, 0, 2 * Math.PI); // 원 그리기
+                        ctx.stroke(); // 소켓 테두리 그리기
+                        // 반투명하게 안을 채우기
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'; // 채우기 색상 설정
+                        ctx.fill(); // 소켓 내부 채우기
+                    }
+                }
+                // 중심 표시 (디버깅)
+                if (debug.show_nodeCenter) {
+                    ctx.beginPath(); // 그리기 시작
+                    ctx.arc(this.x, this.y, borderThickness * 2, 0, 2 * Math.PI); // 원 그리기
+                    ctx.fillStyle = 'orange'; // 원 색상 설정
+                    ctx.fill(); // 원 내부 채우기
+                }
             }
 
             contains(mx, my) { // 주어진 좌표가 노드 내부인지 확인
                 return mx >= this.x - this.width * gridSpacing / 2 && mx <= this.x + this.width * gridSpacing / 2 &&
-                       my >= this.y - this.height * gridSpacing / 2 && my <= this.y + this.height * gridSpacing / 2;
+                       my >= this.y - gridSpacing/2 && my <= this.y - gridSpacing/2 + this.height * gridSpacing;
+            }
+            // 주어진 좌표가 소켓 내부인지 확인
+            containsSocket(mx, my) {
+                const socketY = this.y + gridSpacing/2*3; // 소켓의 초기 Y 좌표 계산
+                const socketRadius = gridSpacing / 6; // 소켓 반지름 계산
+                // 인풋 소켓 확인
+                for (let i = 0; i < this.connections.input.socketCount; i++) {
+                    const socketX = this.x - (this.width * gridSpacing)/2; // 인풋 소켓의 X 좌표 계산
+                    if (Math.sqrt((mx - socketX) ** 2 + (my - (socketY + i * gridSpacing)) ** 2) <= socketRadius) {
+                        return { type: 'input', index: i }; // 인풋 소켓이면 인풋 소켓 타입과 인덱스 반환
+                    }
+                }
+                // 아웃풋 소켓 확인
+                for (let i = 0; i < this.connections.output.socketCount; i++) {
+                    const socketX = this.x + (this.width * gridSpacing)/2; // 아웃풋 소켓의 X 좌표 계산
+                    if (Math.sqrt((mx - socketX) ** 2 + (my - (socketY + i * gridSpacing)) ** 2) <= socketRadius) {
+                        return { type: 'output', index: i }; // 아웃풋 소켓이면 아웃풋 소켓 타입과 인덱스 반환
+                    }
+                }
+                return null; // 소켓이 아니면 null 반환
             }
         }
 
@@ -154,24 +303,88 @@
         // 함수 선언
         // ============================================================
         // 최종적인 캔버스를 그리는 함수
-        function updateCanvas() {
+        function updateCanvas(e) {
             ctx.clearRect(0, 0, canvas.width, canvas.height); // 캔버스 지우기
 
             drawGrid(); // 그리드 그리기
 
+            // 연결된 소켓 선 그리기
+            drawSocketConnections();
+
             nodes.forEach(node => node.draw()); // 모든 노드 그리기
 
-            if (isSelecting) {
+            if (isDragSelecting) {
                 drawSelectionBox(); // 드래그로 선택된 영역 그리기
             }
+
+            if (!(selectedSocket.type === null)) {
+                drawSocketConnecting(e); // 당겨지고 있는 소켓 연결 선 그리기
+            }
+        }
+
+        function drawSocketConnections() {
+            // 모든 노드들의 소켓들을 연결하는 선 그리기
+            nodes.forEach(node => {
+                const socketY = node.y + gridSpacing/2*3; // 소켓의 초기 Y 좌표 계산
+                const socketRadius = gridSpacing / 6; // 소켓 반지름 계산
+                // 아웃풋 소켓 연결 선 그리기
+                for (let i = 0; i < node.connections.output.socketCount; i++) {
+                    const socketX = node.x + (node.width * gridSpacing)/2; // 아웃풋 소켓의 X 좌표 계산
+                    if (node.connections.output.nodes[i].id) {
+                        const connectedNode = nodes.find(n => n.id === node.connections.output.nodes[i].id); // 연결된 노드 찾기
+                        const connectedSocketY = connectedNode.y + gridSpacing/2*3; // 연결된 소켓의 초기 Y 좌표 계산
+                        const connectedSocketRadius = gridSpacing / 6; // 연결된 소켓 반지름 계산
+                        const connectedSocketX = connectedNode.x - (connectedNode.width * gridSpacing)/2; // 연결된 소켓의 X 좌표 계산
+                        ctx.beginPath(); // 그리기 시작
+                        ctx.moveTo(socketX, socketY + i * gridSpacing); // 시작점 설정
+                        ctx.lineTo(connectedSocketX, connectedSocketY + node.connections.output.nodes[i].index * gridSpacing); // 끝점 설정
+                        ctx.strokeStyle = 'hsl(210, 15%, 100%)'; // 선 색상 설정
+                        ctx.lineWidth = borderThickness*2; // 선 두께 설정
+                        ctx.stroke(); // 선 그리기
+                    }
+                }
+            });
+        }
+        function drawSocketConnecting(e) {
+            // 선택된 소켓의 위치부터 마우스 위치까지 선 그리기
+            const socketY = selectedSocket.ParentNode.y + gridSpacing/2*3; // 소켓의 초기 Y 좌표 계산
+            const socketRadius = gridSpacing / 6; // 소켓 반지름 계산
+            let socketX;
+            if (selectedSocket.type === 'input') {
+                socketX = selectedSocket.ParentNode.x - (selectedSocket.ParentNode.width * gridSpacing)/2; // 인풋 소켓의 X 좌표 계산
+            } else if (selectedSocket.type === 'output') {
+                socketX = selectedSocket.ParentNode.x + (selectedSocket.ParentNode.width * gridSpacing)/2; // 아웃풋 소켓의 X 좌표 계산
+            }
+            ctx.beginPath(); // 그리기 시작
+            ctx.moveTo(socketX, socketY + selectedSocket.index * gridSpacing); // 시작점 설정
+            let connectionEndX = e.offsetX; // 연결 끝점 X 좌표
+            let connectionEndY = e.offsetY; // 연결 끝점 Y 좌표
+            if (!(selectedSocket.type === null) && hoveredSocket.type !== null && selectedSocket.ParentNode !== hoveredSocket.ParentNode) {
+                // 소켓끼리 잇기
+                connectionEndX = hoveredSocket.ParentNode.x - (hoveredSocket.ParentNode.width * gridSpacing)/2;
+                connectionEndY = hoveredSocket.ParentNode.y + gridSpacing/2*3 + hoveredSocket.index * gridSpacing;
+            }
+            ctx.lineTo(connectionEndX, connectionEndY);
+            ctx.strokeStyle = 'hsl(210, 15%, 100%)'; // 선 색상 설정
+            ctx.lineWidth = borderThickness*2; // 선 두께 설정
+            ctx.stroke(); // 선 그리기
+            // 시작점에 원 그리기
+            ctx.beginPath(); // 그리기 시작
+            ctx.arc(socketX, socketY + selectedSocket.index * gridSpacing, socketRadius/2, 0, 2 * Math.PI); // 원 그리기
+            ctx.fillStyle = 'hsl(210, 15%, 100%)'; // 원 색상 설정
+            ctx.fill(); // 원 내부 채우기
+            // 마우스 위치에 원 그리기
+            ctx.beginPath(); // 그리기 시작
+            ctx.arc(connectionEndX, connectionEndY, socketRadius/2, 0, 2 * Math.PI); // 원 그리기
+            ctx.fill(); // 원 내부 채우기
         }
 
         // 그리드를 그리는 함수
         function drawGrid() {
             ctx.lineWidth = 1; // 그리드 선 두께 설정
             ctx.strokeStyle = 'hsl(0, 0%, 25%)'; // 그리드 선 색상 설정
-            // 그리드 간격이 최소값보다 작으면 최소값으로, 최대값보다 크면 최대값으로 설정
-            gridSpacing = Math.max(minGridSpacing, Math.min(maxGridSpacing, gridSpacing));
+            // // 그리드 간격이 최소값보다 작으면 최소값으로, 최대값보다 크면 최대값으로 설정 (??? 일단 비활성화)
+            // gridSpacing = Math.max(minGridSpacing, Math.min(maxGridSpacing, gridSpacing));
 
             // 수직선 그리기
             for (let x = moveX % gridSpacing; x < canvas.width; x += gridSpacing) {
@@ -216,11 +429,11 @@
                 const nodeX = node.x; // 이 노드의 X 좌표
                 const nodeY = node.y; // 이 노드의 Y 좌표
                 const nodeWidth = node.width * gridSpacing / 2; // 이 노드의 너비
-                const nodeHeight = node.height * gridSpacing / 2; // 이 노드의 높이
+                const nodeHeight = node.height * gridSpacing; // 이 노드의 높이
 
                 // 선택 영역 내에 있는지 계산해서 반환
                 return (nodeX + nodeWidth >= x1 && nodeX - nodeWidth <= x2 &&
-                        nodeY + nodeHeight >= y1 && nodeY - nodeHeight <= y2);
+                        nodeY - gridSpacing/2 + nodeHeight >= y1 && nodeY - gridSpacing/2 <= y2);
             });
         }
 
@@ -251,12 +464,12 @@
             });
 
             // 드래그 선택 영역 시작점 위치 조정
-            if (isSelecting) {
+            if (isDragSelecting) {
                 selectionStartX = (selectionStartX - mouseX) * zoomAmount + mouseX;
                 selectionStartY = (selectionStartY - mouseY) * zoomAmount + mouseY;
             }
 
-            updateCanvas(); // 캔버스 업데이트
+            updateCanvas(e); // 캔버스 업데이트
         });
 
         // 마우스 클릭 시
@@ -279,12 +492,20 @@
 
                 // 클릭된 노드가 있나 찾기
                 const clickedNode = nodes.slice().reverse().find(node => node.contains(mx, my));
+                // 클릭된 소켓이 있나 찾기
+                selectedSocket = hoveredSocket; // 선택된 소켓 설정
                 // 노드가 클릭되면 앞에 보이게 하기
                 if (clickedNode) {
                     const index = nodes.indexOf(clickedNode); // 선택된 노드의 인덱스 찾기
                     if (index !== -1) {
                         nodes.splice(index, 1); // 선택된 노드를 배열에서 제거
                         nodes.push(clickedNode); // 선택된 노드를 배열의 최하위로 추가
+                    }
+                } else if (selectedSocket.ParentNode) { // 소켓이 클릭되면 해당 노드를 앞에 보이게 하기
+                    const index = nodes.indexOf(selectedSocket.ParentNode); // 선택된 노드의 인덱스 찾기
+                    if (index !== -1) {
+                        nodes.splice(index, 1); // 선택된 노드를 배열에서 제거
+                        nodes.push(selectedSocket.ParentNode); // 선택된 노드를 배열의 최하위로 추가
                     }
                 }
 
@@ -294,14 +515,13 @@
                     } else if (clickedNode && selectedNodes.includes(clickedNode)) {// 선택된 노드가 있고, selectedNodes에 있다면
                         selectedNodes = selectedNodes.filter(node => node !== clickedNode); // 선택된 노드들에서 제거
                     }
-                    
+ 
                 } else { // 좌클릭만 한 경우
-                    if (clickedNode) { // 클릭된 노드가 있으면
-                        // 선택된 노드가 selectedNodes에 있는 노드가 아니면(= 다중 선택 취소 -> 단일 선택)
-                        if (!selectedNodes.includes(clickedNode)) {
-                            selectedNodes = [clickedNode]; // 단일 선택
-
-                        } else {// 선택된 노드가 selectedNodes에 있는 노드라면(= 다중 선택 된 단일 요소 클릭)
+                    if (clickedNode && (selectedSocket.type === null)) { // 클릭된 노드가 있고 선택된 소켓이 없다면
+                        // 선택된 노드가 selectedNodes에 있는 노드가 아니면
+                        if (!selectedNodes.includes(clickedNode)) { // 단일 선택
+                            selectedNodes = [clickedNode];
+                        } else {// 선택된 노드가 selectedNodes에 있는 노드라면(= (다중) 선택 된 단일 요소 클릭)
                             // 드래그인지 단일 클릭인지 판단
                             let waitInterval = setInterval(() => {
                                 // 드래그 시 드래그라고 판단
@@ -313,18 +533,24 @@
                                 if (!isLeftMouseDown) {
                                     selectedNodes = [clickedNode]; // 단일 선택
 
+                                    updateCanvas(e); // 캔버스 업데이트(인터벌이라 아래의 업데이트가 안 돼서 여기서 업데이트)
+
                                     clearInterval(waitInterval); // 인터벌 삭제
                                 }
                             }, 10); // 일정 시간 간격으로 확인
                         }
+                    } else if (!(selectedSocket === null)) { // 소켓이 선택되었다면
+                        selectedNodes = []; // 배열 비우기
                     } else { // 클릭된 노드가 없으면(= 빈 공간 클릭)
                         selectedNodes = []; // 배열 비우기
                     }
                 }
+                
 
                 // 드래그 시작
-                if (clickedNode && !e.shiftKey) { // 클릭된 노드가 있고, Shift가 눌리지 않았다면 드래그라고 판단
-                    isDragging = true; // 드래그 상태 설정
+                // 클릭된 노드가 있고, Shift가 눌리지 않았고, 소켓이 선택되지 않았다면 드래그라고 판단
+                if (clickedNode && !e.shiftKey && selectedSocket.type === null) {
+                    isNodeDragging = true; // 드래그 상태 설정
 
                     // 선택된 노드들의 오프셋을 각각 계산
                     selectedNodes.forEach(node => {
@@ -334,8 +560,9 @@
                 }
                 
                 // 드래그 선택이 시작되면
-                if (e.button === 0 && !e.shiftKey && !isDragging) {
-                    isSelecting = true;
+                // Shift가 눌리지 않았고, 드래그 중인 노드가 없고, 소켓이 선택되지 않았다면 드래그 선택이라고 판단
+                if (!e.shiftKey && !isNodeDragging && selectedSocket.type === null) {
+                    isDragSelecting = true;
                     selectionStartX = e.offsetX;
                     selectionStartY = e.offsetY;
                     selectionEndX = e.offsetX;
@@ -344,10 +571,10 @@
                     // 선택 영역 박스 애니메이션을 주기 위해 인터벌 설정
                     selectionInterval = setInterval(() => {
                         // 0.1초 간격으로 캔버스를 업데이트
-                        updateCanvas();
+                        updateCanvas(e);
                     }, 100); // 100ms = 0.1초
                 } else { // 드래그 선택이 아니라면 그냥 캔버스 업데이트
-                    updateCanvas();
+                    updateCanvas(e);
                 }
             }
         });
@@ -357,10 +584,19 @@
             const mx = e.offsetX; // 마우스 X 좌표
             const my = e.offsetY; // 마우스 Y 좌표
             const hoveredNode = nodes.slice().reverse().find(node => node.contains(mx, my)); // 호버 중인 노드 찾기
+            hoveredSocket = nodes.slice().reverse().find(node => node.containsSocket(mx, my))?.containsSocket(mx, my); // 호버 중인 소켓 찾기
+            if (hoveredSocket === undefined) hoveredSocket = { type: null, index: null }; // 호버 중인 소켓이 없으면 null로 설정
+            // 호버된 소켓을 가지고 있는 노드 찾기
+            hoveredSocket.ParentNode = nodes.find(node => {
+                if (node.containsSocket(mx, my)) {
+                    return node;
+                }
+            });
 
             // 마우스가 노드 위에 있으면 노드 스타일 변경
             nodes.forEach(node => {
                 if (selectedNodes.includes(node)) { // 선택된 노드라면
+                    // (!!!) 하지만 selectedNodes에 있는 노드에 스타일을 적용하는 시스템이라서 이 코드는 아직까지는 의미가 없음
                     node.color = 'selected';
                 } else if (node === hoveredNode) { // 호버 중인 노드라면
                     node.color = 'hover';
@@ -369,21 +605,39 @@
                 }
             });
 
-            // 드래그 중인 경우
-            if (isSelecting) {
+            // 드래그 선택 중인 경우
+            if (isDragSelecting) {
                 selectionEndX = e.offsetX; // 드래그 선택 끝점 X 좌표
                 selectionEndY = e.offsetY; // 드래그 선택 끝점 Y 좌표
 
                 selectNodesInBox(); // 드래그로 선택된 영역 내의 노드들을 선택처리
             }
+
+            // 
+            if (!(selectedSocket.type === null) && hoveredSocket.type !== null && selectedSocket.ParentNode !== hoveredSocket.ParentNode) {
+                // 선택된/호버된 소켓이 모두 존재하고 선택된 소켓과 호버된 소켓이 다르다면
+
+                // 소켓이 인풋이고, 호버된 소켓이 아웃풋이라면
+                if (selectedSocket.type === 'input' && hoveredSocket.type === 'output') {
+                    // selectedSocket.ParentNode.connections.input.nodes[selectedSocket.index].id = hoveredSocket.ParentNode.id;
+                    // selectedSocket.ParentNode.connections.input.nodes[selectedSocket.index].index = hoveredSocket.index;
+                    // hoveredSocket.ParentNode.connections.output.nodes[hoveredSocket.index].id = selectedSocket.ParentNode.id;
+                    // hoveredSocket.ParentNode.connections.output.nodes[hoveredSocket.index].index = selectedSocket.index;
+                } else if (selectedSocket.type === 'output' && hoveredSocket.type === 'input') {
+                    selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index].id = hoveredSocket.ParentNode.id;
+                    selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index].index = hoveredSocket.index;
+                    hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].id = selectedSocket.ParentNode.id;
+                    hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].index = selectedSocket.index;
+                }
+            }
             
-            updateCanvas(); // 캔버스 업데이트
+            updateCanvas(e); // 캔버스 업데이트
         });
 
         // 마우스가 움직이면
         window.addEventListener('mousemove', (e) =>{
             // 마우스가 실재로 움직이는 드래그 중인지 판단
-            if (isDragging) {
+            if (isNodeDragging) {
                 isMouseDragging = true;
             } else {
                 isMouseDragging = false;
@@ -396,11 +650,11 @@
                 moveY = e.clientY - moveYStart; // Y축 방향 이동량 계산
                 
                 // 드래그 선택 중인 경우, 드래그 박스의 시작 지점도 이동
-                if (isSelecting) {
+                if (isDragSelecting) {
                     selectionStartX = e.offsetX + (selectionStartInitialX - selectionEndInitialX);
                     selectionStartY = e.offsetY + (selectionStartInitialY - selectionEndInitialY);
                 }
-            } else if (isDragging) { // 좌클릭 드래그 중인 경우
+            } else if (isNodeDragging) { // 좌클릭 드래그 중인 경우
                 // 선택된 노드들의 위치를 마우스 위치에 따라 이동
                 selectedNodes.forEach(node => {
                     // Ctrl 키를 누르고 있는 경우 그리드에 맞춰 이동
@@ -415,20 +669,23 @@
             }
 
 
-            updateCanvas(); // 캔버스 업데이트
-        }); // 마우스 이동 시 핸들러 설정
+            updateCanvas(e); // 캔버스 업데이트
+        });
 
         // 마우스 클릭을 뗐을 때
         window.addEventListener('mouseup', (e) => {
             if (e.button === 0) { // 좌클릭을 뗐을 때
-                isDragging = false; // 드래그 상태 해제
+                isNodeDragging = false; // 드래그 상태 해제
                 isLeftMouseDown = false; // 좌클릭 상태 해제
+                if (!(selectedSocket.type === null)) {
+                    selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index].state = 'connect';
+                    hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].state = 'connect';
+                }
+                selectedSocket = { type: null, index: null, ParentNode: null }; // 선택된 소켓 초기화
 
                 // 드래그 선택이 종료되는 거라면
-                if (isSelecting) {
-                    isSelecting = false; // 드래그 선택 상태 해제
-
-                    selectNodesInBox(); // 드래그로 선택된 영역 내의 노드들을 선택
+                if (isDragSelecting) {
+                    isDragSelecting = false; // 드래그 선택 상태 해제
 
                     clearInterval(selectionInterval); // 인터벌 제거
                 }
@@ -436,7 +693,7 @@
                 isWheelDragging = false; // 휠 드래그 상태 해제
             }
 
-            updateCanvas(); // 캔버스 업데이트
+            updateCanvas(e); // 캔버스 업데이트
         });
 
         // del키를 누른 경우
@@ -446,7 +703,7 @@
                 nodes = nodes.filter(node => !selectedNodes.includes(node)); // 선택된 노드들을 제외한 노드들만 남기기
                 selectedNodes = []; // 선택된 노드들 비우기
 
-                updateCanvas(); // 캔버스 업데이트
+                updateCanvas(e); // 캔버스 업데이트
             }
 
             // 전부 선택 기능
@@ -455,7 +712,7 @@
                 
                 selectedNodes = nodes.slice(); // 모든 노드들을 선택
 
-                updateCanvas(); // 캔버스 업데이트
+                updateCanvas(e); // 캔버스 업데이트
             }
         });
         
@@ -464,7 +721,16 @@
         document.getElementById('addNodeBtn').addEventListener('click', () => {
             const centerX = (canvas.width / 2 - moveX);
             const centerY = (canvas.height / 2 - moveY);
-            const node = new Node(centerX, centerY);
+            const node = new Node(centerX, centerY, 'value');
+
+            nodes.push(node);
+            
+            updateCanvas();
+        });
+        document.getElementById('addNodeBtn2').addEventListener('click', () => {
+            const centerX = (canvas.width / 2 - moveX);
+            const centerY = (canvas.height / 2 - moveY);
+            const node = new Node(centerX, centerY, 'operator');
 
             nodes.push(node);
             

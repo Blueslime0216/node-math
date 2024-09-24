@@ -80,6 +80,7 @@
         let moveXStart, moveYStart; // 드래그 시작 지점의 X, Y 좌표
         
         // 드래그 조작 관련
+        let mx, my; // 마우스 클릭 위치 X, Y 좌표
         let isNodeDragging = false; // 노드를 드래그 중인지 여부
 
         let issocketDragging = false; // 소켓을 드래그 중인지 여부
@@ -474,8 +475,8 @@
 
         // 마우스 클릭 시
         canvas.addEventListener('mousedown', (e) => {
-            const mx = e.offsetX; // 마우스 클릭 위치 X 좌표
-            const my = e.offsetY; // 마우스 클릭 위치 Y 좌표
+            mx = e.offsetX; // 마우스 클릭 위치 X 좌표
+            my = e.offsetY; // 마우스 클릭 위치 Y 좌표
             selectionStartInitialX = selectionStartX; // 드래그 선택 시작점 초기 X 좌표
             selectionStartInitialY = selectionStartY; // 드래그 선택 시작점 초기 Y 좌표
             selectionEndInitialX = selectionEndX; // 드래그 선택 끝점 초기 X 좌표
@@ -581,8 +582,6 @@
 
         // 마우스가 움직이면(캔버스 측 처리)
         canvas.addEventListener('mousemove', (e) => {
-            const mx = e.offsetX; // 마우스 X 좌표
-            const my = e.offsetY; // 마우스 Y 좌표
             const hoveredNode = nodes.slice().reverse().find(node => node.contains(mx, my)); // 호버 중인 노드 찾기
             hoveredSocket = nodes.slice().reverse().find(node => node.containsSocket(mx, my))?.containsSocket(mx, my); // 호버 중인 소켓 찾기
             if (hoveredSocket === undefined) hoveredSocket = { type: null, index: null }; // 호버 중인 소켓이 없으면 null로 설정
@@ -636,6 +635,14 @@
 
         // 마우스가 움직이면
         window.addEventListener('mousemove', (e) =>{
+            if (e.target === canvas) {
+                mx = e.offsetX; // 마우스 X 좌표
+                my = e.offsetY; // 마우스 Y 좌표
+            } else {
+                mx = e.offsetX - canvas.getBoundingClientRect().left; // 마우스 X 좌표
+                my = e.offsetY - canvas.getBoundingClientRect().top; // 마우스 Y 좌표
+            }
+
             // 마우스가 실재로 움직이는 드래그 중인지 판단
             if (isNodeDragging) {
                 isMouseDragging = true;
@@ -659,11 +666,11 @@
                 selectedNodes.forEach(node => {
                     // Ctrl 키를 누르고 있는 경우 그리드에 맞춰 이동
                     if (e.ctrlKey) {
-                        node.initialX = Math.round((e.offsetX - node.offsetX - moveX) / gridSpacing) * gridSpacing;
-                        node.initialY = Math.round((e.offsetY - node.offsetY - moveY) / gridSpacing) * gridSpacing;
+                        node.initialX = Math.round((mx - node.offsetX - moveX) / gridSpacing) * gridSpacing;
+                        node.initialY = Math.round((my - node.offsetY - moveY) / gridSpacing) * gridSpacing;
                     } else { // 아니라면 그냥 이동
-                        node.initialX = e.offsetX - node.offsetX - moveX;
-                        node.initialY = e.offsetY - node.offsetY - moveY;
+                        node.initialX = mx - node.offsetX - moveX;
+                        node.initialY = my - node.offsetY - moveY;
                     }
                 });
             }

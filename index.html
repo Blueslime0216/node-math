@@ -67,6 +67,7 @@
             show_nodeCenter: false, // 노드 중심(좌표) 표시
             show_nodeHitbox: false, // 노드 판정 영역 표시
             show_socketHitbox: false, // 소켓 판정 영역 표시
+            log_renderedNodes: [true, 0], // 렌더링 된 노드 개수 로깅
         }
 
         // 요소 가져오기
@@ -119,6 +120,7 @@
             index: null,
             ParentNode: null,
         };
+        let socketRadius = gridSpacing / 6; // 소켓 반지름 계산
         // 노드 클래스
         class Node {
             constructor(x, y, type) {
@@ -208,7 +210,7 @@
 
                 // 소켓 그리기
                 // (인풋 소켓은 왼쪽, 아웃풋 소켓은 오른쪽에 동그란 원 모양으로 그리기)
-                const socketRadius = gridSpacing / 6; // 소켓 반지름 계산
+                socketRadius = gridSpacing / 6; // 소켓 반지름 계산
                 const socketY = this.y + gridSpacing/2*3; // 소켓의 초기 Y 좌표 계산
                 // 인풋 소켓 그리기
                 for (let i = 0; i < this.connections.input.socketCount; i++) {
@@ -287,7 +289,7 @@
             // 주어진 좌표가 소켓 내부인지 확인
             containsSocket(mx, my) {
                 const socketY = this.y + gridSpacing/2*3; // 소켓의 초기 Y 좌표 계산
-                const socketRadius = gridSpacing / 6; // 소켓 반지름 계산
+                socketRadius = gridSpacing / 6; // 소켓 반지름 계산
                 // 인풋 소켓 확인
                 for (let i = 0; i < this.connections.input.socketCount; i++) {
                     const socketX = this.x - (this.width * gridSpacing)/2; // 인풋 소켓의 X 좌표 계산
@@ -320,7 +322,19 @@
             // 연결된 소켓 선 그리기
             drawSocketConnections();
 
-            nodes.forEach(node => node.draw()); // 모든 노드 그리기
+            if (debug.log_renderedNodes[0]) {
+                debug.log_renderedNodes[1] = 0;
+            }
+            nodes.forEach(node => {
+                const nodeWidth = node.width * gridSpacing / 2 + socketRadius; // 이 노드의 너비
+                const nodeHeight = node.height * gridSpacing; // 이 노드의 높이
+                if (node.x + nodeWidth >= 0 && node.x - nodeWidth <= canvas.width
+                        && node.y - gridSpacing/2 + nodeHeight >= 0 && node.y - gridSpacing/2 <= canvas.height) {
+                    node.draw(); // 모든 노드 그리기
+                    debug.log_renderedNodes[1]++;
+                }
+            });
+            console.log("렌더링 된 노드 개수 : "+debug.log_renderedNodes[1]);
 
             if (isDragSelecting) {
                 drawSelectionBox(); // 드래그로 선택된 영역 그리기

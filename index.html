@@ -780,6 +780,19 @@
                     } else { // 이미 연결된 상태라면
                         // 이전에 연결된 소켓을 찾아서 연결 해제하기
 
+                        // 선택된 소켓의 직접적인 경로
+                        const selectedSK = selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index];
+                        // 지금 연결하려는 소켓이 연결되어 있는 소켓의 경로
+                        const connectedNode = nodes.find(node => node.id === hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].id);
+                        const connectedSK = connectedNode.connections.output.nodes[hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].index];
+                        console.log(connectedSK);
+
+
+
+
+                        
+                        // 이전에 연결된 소켓을 찾아서 연결 해제하기
+
                         // (작업중) 연결줄을 X로 두고 나중에 연결된 줄을 덮어쓰기 하면 다른 줄을 지워버리는 버그 / 여러개의 아웃풋 중에 몇번째인지와 하나의 아웃풋 소켓에서 나가는 여러개의 연결줄 중에 몇번째인지가 섞여서 생긴 버그 같은데
                         const hoveredSocketDirect = hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index]; // 호버된 소켓에 연결되어 있던 소켓(지워야 하는 거)
                         // hoveredSocketDirect의 id, index를 가지고 이 소켓에 연결된 output 소켓 찾기     (   <-   )이 방향으로 거슬러 올라감

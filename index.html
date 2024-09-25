@@ -480,13 +480,15 @@
             let connectionEndY = e.offsetY; // 연결 끝점 Y 좌표
             // 만약 마우스가 다른 소켓 위에 있고 해당 소켓이 인풋 소켓이고
             if (!(selectedSocket.type === null) && hoveredSocket.type !== null && selectedSocket.ParentNode !== hoveredSocket.ParentNode && (selectedSocket.type === 'output' && hoveredSocket.type === 'input')) {
-                // 연결할려는 소켓이 이미 연결된 상태인가?
+                // if (selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index].id.includes(hoveredSocket.ParentNode.id) && selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index].index.includes(hoveredSocket.index)) {
+                //     // 연결하려는 소켓이 자신과 이미 연결된 상태라면 아무 효과도 주지 않기
+                //     ctx.strokeStyle = 'hsla(210, 15%, 100%, 0.5)'; // 선 색상 설정
+                //     ctx.lineWidth = borderThickness*2; // 선 두께 설정
+                //     ctx.fillStyle = 'hsl(210, 15%, 100%)'; // 원 색상 설정
+                // } else 
                 if (hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].state == "connect") {
-                    // 이미 연결된 상태라면 빨간색으로 표시
-                    // ctx.strokeStyle = 'hsla(0, 100%, 50%, 0.5)'; // 선 색상 설정
-                    // ctx.lineWidth = borderThickness*2; // 선 두께 설정
-                    // ctx.fillStyle = 'hsl(0, 100%, 50%)'; // 원 색상 설정
-
+                    // 연결하려는 소켓이 이미 다른 소켓과 연결된 상태라면
+                    console.log("이미 연결된 소켓입니다.");
                     connectionEndX = hoveredSocket.ParentNode.x - (hoveredSocket.ParentNode.width * gridSpacing)/2;
                     connectionEndY = hoveredSocket.ParentNode.y + gridSpacing/2*3 + hoveredSocket.index * gridSpacing;
     
@@ -688,25 +690,6 @@
 
                 selectNodesInBox(); // 드래그로 선택된 영역 내의 노드들을 선택처리
             }
-
-            // 선택된/호버된 소켓이 모두 존재하고 선택된 소켓과 호버된 소켓이 다르다면
-            if (!(selectedSocket.type === null) && hoveredSocket.type !== null && selectedSocket.ParentNode !== hoveredSocket.ParentNode) {
-
-                // 연결을 끊는 코드
-                // if (selectedSocket.type === 'input' && hoveredSocket.type === 'output') {
-                //
-                // }
-                // 아웃풋에서 인풋이고, 아웃풋의 마지막 연결점과 인풋의 연결점이 비어있는 경우에만 연결
-                if (selectedSocket.type === 'output' && hoveredSocket.type === 'input' && !(selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index].state[selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index].state.length - 1] === 'connect' || hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].state === 'connect')) {
-                    // 서로 이어버리기
-                    // 너무 길어서 outputSocket으로 재정의 (그러게 왜 맘대로 형식 정해서 저장해가지고)
-                    const outputSocket = selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index]
-                    outputSocket.id[outputSocket.id.length - 1] = hoveredSocket.ParentNode.id;
-                    outputSocket.index[outputSocket.index.length - 1] = hoveredSocket.index;
-                    hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].id = selectedSocket.ParentNode.id;
-                    hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].index = selectedSocket.index;
-                }
-            }
             
             updateCanvas(e); // 캔버스 업데이트
         });
@@ -766,66 +749,32 @@
                 isSocketDragging = false; // 소켓 드래그 상태 해제
                 if (selectedSocket.type !== null && hoveredSocket.type !== null && selectedSocket.ParentNode !== hoveredSocket.ParentNode) {
                     // 소켓 연결이 된 상태(드래그 선택된 소켓이 있고, 호버된 소켓이 있고, 선택된 소켓과 호버된 소켓이 다른 노드일 때)에서 마우스를 뗀 경우
-                    if (!(hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].state == "connect")) {
-                        // 이미 연결된 상태가 아니라면
-                        const selectedSK = selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index];
-                        selectedSK.state[selectedSK.state.length - 1] = 'connect'; // 선택된 소켓(아웃풋)의 마지막 연결줄의 상태를 connect로 변경
-                        hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].state = 'connect';
-                        // 새로운 연결줄을 추가하기
-                        selectedSK.id.push(null);
-                        selectedSK.index.push(null);
-                        selectedSK.state.push(null);
-
-                        console.log(`(${selectedSK.state}) 연결됨 : ${selectedSocket.ParentNode.id} ${selectedSocket.type} ${selectedSocket.index+1}번째 소켓 -> ${hoveredSocket.ParentNode.id} ${hoveredSocket.type} ${hoveredSocket.index+1}번째 소켓`);
-                    } else { // 이미 연결된 상태라면
+                    if (hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].state == "connect") {
                         // 이전에 연결된 소켓을 찾아서 연결 해제하기
 
-                        // 선택된 소켓의 직접적인 경로
-                        const selectedSK = selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index];
                         // 지금 연결하려는 소켓이 연결되어 있는 소켓의 경로
                         const connectedNode = nodes.find(node => node.id === hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].id);
                         const connectedSK = connectedNode.connections.output.nodes[hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].index];
-                        console.log(connectedSK);
-
-
-
-
-                        
-                        // 이전에 연결된 소켓을 찾아서 연결 해제하기
-
-                        // (작업중) 연결줄을 X로 두고 나중에 연결된 줄을 덮어쓰기 하면 다른 줄을 지워버리는 버그 / 여러개의 아웃풋 중에 몇번째인지와 하나의 아웃풋 소켓에서 나가는 여러개의 연결줄 중에 몇번째인지가 섞여서 생긴 버그 같은데
-                        const hoveredSocketDirect = hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index]; // 호버된 소켓에 연결되어 있던 소켓(지워야 하는 거)
-                        // hoveredSocketDirect의 id, index를 가지고 이 소켓에 연결된 output 소켓 찾기     (   <-   )이 방향으로 거슬러 올라감
-                        const old_selectedNode = nodes.find(node => node.id == hoveredSocketDirect.id); // 연결을 해제할 소켓이 있는 노드
-                        // old_selectedNode.connections.output.nodes의 몇번째 소켓인지 찾기
-                        console.log(old_selectedNode.connections.output.nodes); // 위의 hoveredSocketDirect.index이 만악의 근원
-                        const index = old_selectedNode.connections.output.nodes.findIndex(node => node.id == hoveredSocket.ParentNode.id);
-                        const old_selectedOutputSocket = old_selectedNode.connections.output.nodes[hoveredSocketDirect.index]; // 연결을 해제할 소켓
-                        // old_selectedOutputSocket의 이전의 연결을 삭제하기
-                        // const index = old_selectedOutputSocket.id.findIndex((id, i) => id === hoveredSocket.ParentNode.id && old_selectedOutputSocket.index[i] === hoveredSocket.index);
-                        console.log(old_selectedOutputSocket, old_selectedOutputSocket);
-                        old_selectedOutputSocket.id.splice(index, 1);
-                        old_selectedOutputSocket.index.splice(index, 1);
-                        old_selectedOutputSocket.state.splice(index, 1);
-
-                        // 새로운 연결줄을 추가하기
-                        //&& (hoveredSocket.ParentNode === connectedNode && hoveredSocket.index === node.connections.output.nodes[i].index[j])
-                        // 일단 연결 한번 하기(mousemove에 있던 코드와 동일)
-                        const outputSocket = selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index]
-                        outputSocket.id[outputSocket.id.length - 1] = hoveredSocket.ParentNode.id;
-                        outputSocket.index[outputSocket.index.length - 1] = hoveredSocket.index;
-                        hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].id = selectedSocket.ParentNode.id;
-                        hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].index = selectedSocket.index;
-                        //
-                        const selectedSK = selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index];
-                        selectedSK.state[selectedSK.state.length - 1] = 'connect'; // 선택된 소켓(아웃풋)의 마지막 연결줄의 상태를 connect로 변경
-                        hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].state = 'connect';
-                        // 새로운 연결줄을 추가하기
-                        selectedSK.id.push(null);
-                        selectedSK.index.push(null);
-                        selectedSK.state.push(null);
-                        // console.log(`(${selectedSK.state}) 연결됨 : ${selectedSocket.ParentNode.id} ${selectedSocket.type} ${selectedSocket.index+1}번째 소켓 -> ${hoveredSocket.ParentNode.id} ${hoveredSocket.type} ${hoveredSocket.index+1}번째 소켓`);
+                        // connectedSK의 id와 index와 state를 제거하기
+                        const index = connectedSK.id.findIndex((id, i) => id === hoveredSocket.ParentNode.id && connectedSK.index[i] === hoveredSocket.index);
+                        connectedSK.id.splice(index, 1);
+                        connectedSK.index.splice(index, 1);
+                        connectedSK.state.splice(index, 1);
+                        console.log(`(연결 해제됨 : ${connectedNode.id} ${connectedSK.type} ${connectedSK.index+1}번째 소켓 <- ${hoveredSocket.ParentNode.id} ${hoveredSocket.type} ${hoveredSocket.index+1}번째 소켓`);
                     }
+                    // 선택된 소켓과 호버된 소켓을 연결하기
+                    const selectedSK = selectedSocket.ParentNode.connections.output.nodes[selectedSocket.index];
+                    selectedSK.state[selectedSK.state.length - 1] = 'connect';
+                    hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].id = selectedSocket.ParentNode.id;
+                    hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].index = selectedSocket.index;
+                    hoveredSocket.ParentNode.connections.input.nodes[hoveredSocket.index].state = 'connect';
+                    selectedSK.id[selectedSK.id.length - 1] = hoveredSocket.ParentNode.id;
+                    selectedSK.index[selectedSK.index.length - 1] = hoveredSocket.index;
+                    // 새로운 연결줄을 추가하기
+                    selectedSK.id.push(null);
+                    selectedSK.index.push(null);
+                    selectedSK.state.push(null);
+                    console.log(`(연결됨 : ${selectedSocket.ParentNode.id} ${selectedSocket.type} ${selectedSocket.index+1}번째 소켓 -> ${hoveredSocket.ParentNode.id} ${hoveredSocket.type} ${hoveredSocket.index+1}번째 소켓`);
                 }
                 selectedSocket = { type: null, index: null, ParentNode: null }; // 선택된 소켓 초기화
 

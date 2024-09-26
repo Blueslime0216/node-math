@@ -1,0 +1,33 @@
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: hsl(0, 0%, 10%);
+    flex-direction: column;
+}
+canvas {
+    border: 0px solid hsl(0, 0%, 90%);
+}
+button {
+    margin-bottom: 10px;
+    padding: 10px;
+    font-size: 16px;
+}
+#btnContainer {
+    position: fixed;
+    top: 10vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1vh;
+}
+#editorSize {
+    width: 816px;
+    height: 624px;
+
+    border: 2px solid hsl(0, 0%, 90%);
+
+    overflow: hidden;
+}

@@ -1,0 +1,13 @@
+{
+  "name": "math",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "typescript": "^5.6.2"
+  }
+}

@@ -1,6 +1,8 @@
+import { $_ } from "./utils/domUtils.js";
 import MouseController from "./mouseController.js";
 import DebugStateManager from "./utils/debugStateManager.js";
 import Viewport from "./viewport.js";
+import keyboardEventListener from "./keyboardEvent.js";
 
 // 단축키 버튼을 누른 경우 alert 창으로 단축키 목록 표시
 (document.getElementById('shortcuts') as HTMLButtonElement).addEventListener('click', () => {
@@ -20,7 +22,42 @@ import Viewport from "./viewport.js";
     );
 });
 
-const debugManager = new DebugStateManager()
+const debugManager = new DebugStateManager(); // 디버그 상태 관리자 생성
+const keyListener = new keyboardEventListener(); // 키보드 이벤트 리스너 생성
 
-const canvas:HTMLCanvasElement = document.getElementById('editor') as HTMLCanvasElement; // 캔버스 가져오기
-const viewport = new Viewport(canvas);
+const canvas:HTMLCanvasElement = $_('editor') as HTMLCanvasElement; // 캔버스 가져오기
+const mouseController = new MouseController(canvas); // 마우스 컨트롤러 생성
+
+const viewport = new Viewport(canvas); // 뷰포트 생성
+
+// 뷰포트 리사이즈 이벤트
+window.onresize = viewport.resize;
+
+// 뷰포트 초기화
+viewport.resize();
+
+// 뷰포트 렌더링
+viewport.render();
+
+// 마우스 컨트롤러 이벤트 등록
+mouseController.mousedown = (e) => {
+};
+mouseController.mousemove = (e) => {
+    if(mouseController.isDragging){
+        console.log('dragging');
+    }
+};
+mouseController.mouseup = (e) => {
+};
+mouseController.click = (e) => {
+}
+mouseController.wheel = (e) => {
+    viewport.zoom += e.deltaY * -0.01;
+}
+
+// 키보드 이벤트 리스너 등록
+keyListener.keydown = (e) => {
+    if(e.code === 'ControlLeft'){
+        console.log('ctrl down');
+    }
+};

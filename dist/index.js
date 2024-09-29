@@ -1,5 +1,8 @@
+import { $_ } from "./utils/domUtils.js";
+import MouseController from "./mouseController.js";
 import DebugStateManager from "./utils/debugStateManager.js";
 import Viewport from "./viewport.js";
+import keyboardEventListener from "./keyboardEvent.js";
 // 단축키 버튼을 누른 경우 alert 창으로 단축키 목록 표시
 document.getElementById('shortcuts').addEventListener('click', () => {
     alert('< Shortcuts >\n\n' +
@@ -16,6 +19,35 @@ document.getElementById('shortcuts').addEventListener('click', () => {
         '(겹치는 경우 마지막으로 선택된 노드가 위로 올라옴)\n' +
         '드래그 선택 : 빈 공간에 좌클릭 후 드래그\n');
 });
-const debugManager = new DebugStateManager();
-const canvas = document.getElementById('editor'); // 캔버스 가져오기
-const viewport = new Viewport(canvas);
+const debugManager = new DebugStateManager(); // 디버그 상태 관리자 생성
+const keyListener = new keyboardEventListener(); // 키보드 이벤트 리스너 생성
+const canvas = $_('editor'); // 캔버스 가져오기
+const mouseController = new MouseController(canvas); // 마우스 컨트롤러 생성
+const viewport = new Viewport(canvas); // 뷰포트 생성
+// 뷰포트 리사이즈 이벤트
+window.onresize = viewport.resize;
+// 뷰포트 초기화
+viewport.resize();
+// 뷰포트 렌더링
+viewport.render();
+// 마우스 컨트롤러 이벤트 등록
+mouseController.mousedown = (e) => {
+};
+mouseController.mousemove = (e) => {
+    if (mouseController.isDragging) {
+        console.log('dragging');
+    }
+};
+mouseController.mouseup = (e) => {
+};
+mouseController.click = (e) => {
+};
+mouseController.wheel = (e) => {
+    viewport.zoom += e.deltaY * -0.01;
+};
+// 키보드 이벤트 리스너 등록
+keyListener.keydown = (e) => {
+    if (e.code === 'ControlLeft') {
+        console.log('ctrl down');
+    }
+};

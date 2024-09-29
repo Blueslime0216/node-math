@@ -29,3 +29,14 @@ interface DragMouseEvent extends MouseEvent {
     draggedX:number;
     draggedY:number;
 }
+
+interface IMouseKeys{
+    left:boolean;
+    wheel:boolean;
+    right:boolean;
+}
+interface IMouseDraggedSize{
+    left:Sizs;
+    wheel:Sizs;
+    right:Sizs;
+}

@@ -6,15 +6,18 @@ export default class Viewport{
     private _canvas:HTMLCanvasElement;
     private _ctx:CanvasRenderingContext2D;
 
-    private _offset:Point = {x:0, y:0};
-    private _zoom:number = 1;
-    private _gridSpacing:number = 50;
-    private _nodes:Node[] = [];
+    private _offset:Point = {x:0, y:0}; // 시점 움직인 정도
+    private _zoom:number = 1; // 시점 확대 정도
+    private _zoomMax:number = 5; // 최대 확대 정도
+    private _zoomMin:number = 0.1; // 최대 축소 정도
+    private _gridSpacing:number = this._zoom*50; // 그리드 간격
+    private _nodes:Node[] = []; // 노드들
+    
+    private readonly lineThickness:number = 2; // 선 두께
+    private readonly gridSpacingDefault:number = 50; // 그리드 기본 간격
 
-    private readonly lineThickness:number = 2;
-
-    selectedNode:Node|null = null;
-    selectedSocket:Socket|null = null;
+    selectedNode:Node|null = null; // 선택된 노드(노드들 ???)
+    selectedSocket:Socket|null = null; // 선택된 소켓
 
     constructor(canvas:HTMLCanvasElement){
         this._canvas = canvas
@@ -25,9 +28,12 @@ export default class Viewport{
     get ctx(){return this._ctx}
 
     get offset(){return this._offset}
+    set offset(value:Point){this._offset = value}
     get zoom(){return this._zoom}
     set zoom(value:number){this._zoom = value}
-    get gridSpacing(){return this._gridSpacing}
+    get zoomMax(){return this._zoomMax}
+    get zoomMin(){return this._zoomMin}
+    get gridSpacing(){return this._zoom*this.gridSpacingDefault}
     get nodes(){return this._nodes}
 
     createNode(x:number, y:number, type:string){
@@ -36,33 +42,39 @@ export default class Viewport{
     }
 
     render(){
+        // 캔버스 비우기
         this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+
+        // 그리드 그리기
         this.drawGrid();
-        this.drawNodes();
+
+        // 노드 그리기
+        // this.drawNodes();
     }
 
     drawGrid(){
-        this._ctx.save();
-        this._ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        this._ctx.lineWidth = this.lineThickness * this._zoom;
-        this._ctx.beginPath();
-        // 그리드 그리기
-        for(let i = 0; i < this._canvas.width; i += this._gridSpacing){
-            this._ctx.moveTo(i, 0);
-            this._ctx.lineTo(i, this._canvas.height);
+        this._ctx.strokeStyle = 'hsl(0, 0%, 25%)'; // 그리드 선 색상 설정
+        this._ctx.lineWidth = 1; // 그리드 선 두께 설정
+
+        // 수직선 그리기
+        for (let x = this._offset.x % this.gridSpacing; x < this._canvas.width; x += this.gridSpacing) {
+            this._ctx.beginPath();
+            this._ctx.moveTo(x, 0);
+            this._ctx.lineTo(x, this._canvas.height);
+            this._ctx.stroke();
         }
-        for(let i = 0; i < this._canvas.height; i += this._gridSpacing){
-            this._ctx.moveTo(0, i);
-            this._ctx.lineTo(this._canvas.width, i);
+        // 수평선 그리기
+        for (let y = this._offset.y % this.gridSpacing; y < this._canvas.height; y += this.gridSpacing) {
+            this._ctx.beginPath();
+            this._ctx.moveTo(0, y);
+            this._ctx.lineTo(this._canvas.width, y);
+            this._ctx.stroke();
         }
-        this._ctx.stroke();
-        this._ctx.closePath();
-        this._ctx.restore();
     }
 
     drawNodes(){
         this._nodes.forEach(node => {
-            node.draw(this._ctx, this.lineThickness, this._gridSpacing);
+            node.draw(this._ctx, this.lineThickness, this.gridSpacing);
         });
     }
 

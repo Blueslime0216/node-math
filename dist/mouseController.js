@@ -1,4 +1,4 @@
-import { Point, Size } from "utils/fieldUtils";
+import { Point, Size } from "./utils/fieldUtils.js";
 export default class MouseController {
     // 생성자: 특정 HTML 요소에 마우스 이벤트 리스너를 추가
     constructor(element) {

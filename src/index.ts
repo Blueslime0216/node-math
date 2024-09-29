@@ -1,5 +1,5 @@
 import { $_ } from "./utils/domUtils.js";
-import MouseController from "./mouseController.js";
+import Controller from "./controller.js";
 import DebugStateManager from "./utils/debugStateManager.js";
 import Viewport from "./viewport.js";
 import keyboardEventListener from "./keyboardEvent.js";
@@ -26,33 +26,48 @@ const debugManager = new DebugStateManager(); // 디버그 상태 관리자 생�
 const keyListener = new keyboardEventListener(); // 키보드 이벤트 리스너 생성
 
 const canvas:HTMLCanvasElement = $_('editor') as HTMLCanvasElement; // 캔버스 가져오기
-const mouseController = new MouseController(canvas); // 마우스 컨트롤러 생성
+const controller = new Controller(canvas); // 마우스 컨트롤러 생성
 
 const viewport = new Viewport(canvas); // 뷰포트 생성
 
 // 뷰포트 리사이즈 이벤트
 window.onresize = viewport.resize;
-
-// 뷰포트 초기화
+// 뷰포트 크기 조정
 viewport.resize();
 
-// 뷰포트 렌더링
+// 최초 렌더링
 viewport.render();
 
+canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); // 우클릭 메뉴 안 뜨게 하기
+});
 // 마우스 컨트롤러 이벤트 등록
-mouseController.mousedown = (e) => {
+controller.mousedown = (e) => {
+    // 클릭된 마우스 로그 띄우기
+    // console.log(controller._mouseDown);
 };
-mouseController.mousemove = (e) => {
-    if(mouseController.isDragging){
-        console.log('dragging');
-    }
+controller.mousemove = (e) => {
+    // 드래그 중인 마우스 로그 띄우기
+    // console.log(controller._isMouseDragging);
 };
-mouseController.mouseup = (e) => {
+controller.mouseup = (e) => {
 };
-mouseController.click = (e) => {
+controller.click = (e) => {
 }
-mouseController.wheel = (e) => {
-    viewport.zoom += e.deltaY * -0.01;
+controller.wheel = (e) => {
+    // 줌 조절하기
+    const zoomFactor = 1.1; // 줌 인/아웃 시 사용할 배율
+    const zoomAmount = e.deltaY > 0 ? 1 / zoomFactor : zoomFactor; // 줌 방향(in/out) 계산
+    // 만약 줌이 최소/최대값을 벗어나면 최소/최대값으로 설정
+    if (!(viewport.zoom*zoomAmount < viewport.zoomMin || viewport.zoom*zoomAmount > viewport.zoomMax)) {
+        viewport.zoom *= zoomAmount;
+
+        // 마우스 위치를 기준으로 줌이 조정되도록 시점 이동
+        viewport.offset.x += (e.offsetX - viewport.offset.x) * (1 - zoomAmount);
+        viewport.offset.y += (e.offsetY - viewport.offset.y) * (1 - zoomAmount);
+    }
+
+    viewport.render();
 }
 
 // 키보드 이벤트 리스너 등록

@@ -20,12 +20,12 @@ export default class Node {
     }
     // bounds getter, setter
     get x() { return this.bounds.x; }
-    set x(value) { this.bounds.x = value; }
     get y() { return this.bounds.y; }
+    set x(value) { this.bounds.x = value; }
     set y(value) { this.bounds.y = value; }
     get width() { return this.bounds.width; }
-    set width(value) { this.bounds.width = value; }
     get height() { return this.bounds.height; }
+    set width(value) { this.bounds.width = value; }
     set height(value) { this.bounds.height = value; }
     /**
      * 소켓을 생성합니다.

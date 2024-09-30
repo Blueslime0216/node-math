@@ -6,10 +6,12 @@ export default class Viewport{
     private _canvas:HTMLCanvasElement;
     private _ctx:CanvasRenderingContext2D;
 
-    private _offset:Point = {x:0, y:0}; // 시점 움직인 정도
+    // private _offset:Point = { x:-1, y:-1 }; // 시점 움직인 정도 (_offsetStart + _offsetMoving)
+    private _offsetStart:Point = { x:0, y:0 }; // 시점을 움직이기 시작한 지점
+    private _offsetMoving:Size = { width:0, height:0 }; // 시점을 움직이는 중인 거리
     private _zoom:number = 1; // 시점 확대 정도
     private _zoomMax:number = 5; // 최대 확대 정도
-    private _zoomMin:number = 0.1; // 최대 축소 정도
+    private _zoomMin:number = 0.5; // 최대 축소 정도
     private _gridSpacing:number = this._zoom*50; // 그리드 간격
     private _nodes:Node[] = []; // 노드들
     
@@ -27,8 +29,16 @@ export default class Viewport{
     get canvas(){return this._canvas}
     get ctx(){return this._ctx}
 
-    get offset(){return this._offset}
-    set offset(value:Point){this._offset = value}
+    get offset(){return {
+        x: this._offsetStart.x + this._offsetMoving.width,
+        y: this._offsetStart.y + this._offsetMoving.height
+    }}
+    // set offset(value:Point){this._offset = value}
+    get offsetStart(){return this._offsetStart}
+    set offsetStart(value:Point){this._offsetStart = value}
+    get offsetMoving(){return this._offsetMoving}
+    set offsetMoving(value:Size){this._offsetMoving = value}
+
     get zoom(){return this._zoom}
     set zoom(value:number){this._zoom = value}
     get zoomMax(){return this._zoomMax}
@@ -57,14 +67,14 @@ export default class Viewport{
         this._ctx.lineWidth = 1; // 그리드 선 두께 설정
 
         // 수직선 그리기
-        for (let x = this._offset.x % this.gridSpacing; x < this._canvas.width; x += this.gridSpacing) {
+        for (let x = this.offset.x % this.gridSpacing; x < this._canvas.width; x += this.gridSpacing) {
             this._ctx.beginPath();
             this._ctx.moveTo(x, 0);
             this._ctx.lineTo(x, this._canvas.height);
             this._ctx.stroke();
         }
         // 수평선 그리기
-        for (let y = this._offset.y % this.gridSpacing; y < this._canvas.height; y += this.gridSpacing) {
+        for (let y = this.offset.y % this.gridSpacing; y < this._canvas.height; y += this.gridSpacing) {
             this._ctx.beginPath();
             this._ctx.moveTo(0, y);
             this._ctx.lineTo(this._canvas.width, y);

@@ -35,8 +35,19 @@ interface IMouseKeys{
     wheel:boolean;
     right:boolean;
 }
+interface IMouseKeysPoint{
+    left:Point; // 좌표가 있으면 Point로, 없으면 -1로 할당해두자
+    wheel:Point;
+    right:Point;
+}
 interface IMouseDraggedSize{
     left:Sizs;
     wheel:Sizs;
     right:Sizs;
+}
+
+interface viewportOffset{
+    value:Point;
+    start:Point;
+    moving:Point;
 }

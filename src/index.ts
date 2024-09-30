@@ -43,14 +43,21 @@ canvas.addEventListener('contextmenu', (e) => {
 });
 // 마우스 컨트롤러 이벤트 등록
 controller.mousedown = (e) => {
-    // 클릭된 마우스 로그 띄우기
-    // console.log(controller._mouseDown);
 };
 controller.mousemove = (e) => {
     // 드래그 중인 마우스 로그 띄우기
-    // console.log(controller._isMouseDragging);
+    // 시점 이동 기능
+    if (controller._isMouseDragging.wheel) {
+        viewport.offsetMoving.width = controller._draggedSize.wheel.width;
+        viewport.offsetMoving.height = controller._draggedSize.wheel.height;
+
+        viewport.render();
+    }
 };
 controller.mouseup = (e) => {
+    // 변경된 시점 적용하기
+    viewport.offsetStart = viewport.offset;
+    viewport.offsetMoving = { width: -1, height: -1 };
 };
 controller.click = (e) => {
 }
@@ -63,8 +70,9 @@ controller.wheel = (e) => {
         viewport.zoom *= zoomAmount;
 
         // 마우스 위치를 기준으로 줌이 조정되도록 시점 이동
-        viewport.offset.x += (e.offsetX - viewport.offset.x) * (1 - zoomAmount);
-        viewport.offset.y += (e.offsetY - viewport.offset.y) * (1 - zoomAmount);
+        viewport.offsetStart.x += (e.offsetX - viewport.offset.x) * (1 - zoomAmount);
+        viewport.offsetStart.y += (e.offsetY - viewport.offset.y) * (1 - zoomAmount);
+        console.log(`x : ${viewport.offset.x}, y : ${viewport.offset.y}`);
     }
 
     viewport.render();

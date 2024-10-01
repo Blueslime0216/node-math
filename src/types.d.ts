@@ -13,11 +13,13 @@ interface IEffect{
     [key: string]: any;
 }
 
-// (???) 구지 열거형으로 하는 이유가 있나 확인해보기
-enum ESocketType{
-    input = 'input',
-    output = 'output'
+interface ISetting{
+    isOn:boolean;
+    [key: string]: any;
 }
+
+// (???) 구지 열거형으로 하는 이유가 있나 확인해보기
+type TSocketType = 'input' | 'output';
 
 interface Point{
     x:number;

@@ -7,9 +7,8 @@ import { $_ } from "./utils/domUtils.js";
 import Controller from "./controller.js";
 import viewport from "./viewport.js";
 import keyboardEventListener from "./keyboardEvent.js";
-import DebugStateManager from "./utils/debugStateManager.js";
+import { zoomApply, animateStart } from "./utils/functions.js";
 import effectStateManager from "./utils/effectStateManager.js";
-import { zoomApply, animateStart } from "./functions.js";
 // 단축키 버튼을 누른 경우 alert 창으로 단축키 목록 표시
 document.getElementById('shortcuts').addEventListener('click', () => {
     alert('< Shortcuts >\n\n' +
@@ -26,12 +25,17 @@ document.getElementById('shortcuts').addEventListener('click', () => {
         '(겹치는 경우 마지막으로 선택된 노드가 위로 올라옴)\n' +
         '드래그 선택 : 빈 공간에 좌클릭 후 드래그\n');
 });
+// Add node button을 누른 경우 노드 추가
+document.getElementById('addNodeBtn').addEventListener('click', () => {
+    viewport.createNode({ x: 0, y: 0 }, 'test');
+    viewport.render();
+});
 const keyListener = new keyboardEventListener(); // 키보드 이벤트 리스너 생성
-const debugManager = new DebugStateManager(); // 디버그 상태 관리자 생성
-// 다음 코드로 effectStateManager를 가져왔음 ( import effectStateManager from "./utils/effectStateManager.js"; )
+// import로 debugManager를 가져왔음
+// import로 effectStateManager를 가져왔음
 const canvas = $_('editor'); // 캔버스 가져오기
 const controller = new Controller(canvas); // 마우스 컨트롤러 생성
-// 다음 코드로 viewport를 가져왔음 ( import viewport from "./viewport.js"; )
+// import로 viewport를 가져왔음
 // 뷰포트 리사이즈 이벤트
 window.onresize = viewport.resize;
 // 뷰포트 크기 조정
@@ -99,12 +103,6 @@ keyListener.keydown = (e) => {
             isApply: zoomApply(viewport, 1 / 1.1, canvas.width / 2, canvas.height / 2)
         };
         animateStart();
-    }
-    viewport.render();
-};
-keyListener.keyup = (e) => {
-    if (!keyListener.isKeyDown('+') && !keyListener.isKeyDown('-')) {
-        // effectStateManager.keyboardZoomCenterSign.isOn = false;
     }
     viewport.render();
 };

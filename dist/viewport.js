@@ -3,9 +3,11 @@
 // 여기서는 명령받은 대로 렌더링 하거나 관련 데이터를 전달해주는 역할을 한다.
 // ====================================================================================================
 import { $_ } from "./utils/domUtils.js";
-import Node from "./node.js";
+import Node from "./node/node.js";
 import { Point } from "./utils/fieldUtils.js";
 import effectStateManager from "./utils/effectStateManager.js";
+import { zoomEffect } from "./utils/functions.js";
+import userSetting from "./utils/userSetting.js";
 export class Viewport {
     constructor(canvas) {
         /*
@@ -17,8 +19,8 @@ export class Viewport {
         this._offsetStart = { x: 816 / 2, y: 624 / 2 }; // 시점을 움직이기 시작한 지점
         this._offsetMoving = { width: 0, height: 0 }; // 시점을 움직이는 중인 거리
         this._zoom = 1; // 시점 확대 정도
-        this._zoomMax = 5; // 최대 확대 정도
-        this._zoomMin = 0.5; // 최대 축소 정도
+        this._zoomMax = 3; // 최대 확대 정도
+        this._zoomMin = 0.25; // 최대 축소 정도
         this._nodes = []; // 노드들
         // 상수들
         this.lineThickness = 2; // 선 두께
@@ -42,8 +44,8 @@ export class Viewport {
     get zoomMin() { return this._zoomMin; }
     get gridSpacing() { return this._zoom * this.gridSpacingDefault; }
     get nodes() { return this._nodes; }
-    createNode(x, y, type) {
-        this._nodes.push(new Node(x, y, type));
+    createNode(startPos, type) {
+        this._nodes.push(new Node(startPos, type));
         this.render();
     }
     render() {
@@ -52,7 +54,7 @@ export class Viewport {
         // 그리드 그리기
         this.drawGrid();
         // 노드 그리기
-        // this.drawNodes();
+        this.drawNodes();
         // 이펙트 그리기
         this.drawEffects();
     }
@@ -76,123 +78,17 @@ export class Viewport {
     }
     drawNodes() {
         this._nodes.forEach(node => {
-            node.draw(this._ctx, this.lineThickness, this.gridSpacing);
+            node.draw(this);
         });
     }
     drawEffects() {
         // 마우스 확대/축소 중심 이펙트
-        if (effectStateManager.mouseZoomSign.animation > -1) {
-            // 확대/축소 중심 표시
-            const animation = effectStateManager.mouseZoomSign.animation;
-            const isApply = effectStateManager.mouseZoomSign.isApply;
-            const isInOut = effectStateManager.mouseZoomSign.isInOut;
-            const center = {
-                x: effectStateManager.mouseZoomSign.position.x,
-                y: effectStateManager.mouseZoomSign.position.y
-            };
-            let frame;
-            if (isInOut === 'in') {
-                frame = 3 - animation / 5; // 15/5 -> 3
-            }
-            else {
-                frame = animation / 5; // 15/5 -> 3
-            }
-            let rhombus = frame * 10 + 10; // 마름모 거리
-            // 움직였는지에 따라 색상 변경
-            this._ctx.strokeStyle = isApply ? 'hsl(210, 70%, 50%)' : 'hsl(0, 70%, 50%)';
-            this._ctx.lineWidth = this.lineThickness;
-            // 중심에 작은 정마름모 그리기
-            this._ctx.beginPath();
-            this._ctx.moveTo(center.x, center.y - rhombus);
-            this._ctx.lineTo(center.x + rhombus, center.y);
-            this._ctx.lineTo(center.x, center.y + rhombus);
-            this._ctx.lineTo(center.x - rhombus, center.y);
-            this._ctx.closePath();
-            this._ctx.stroke();
-            // 십자선 그리기
-            this._ctx.beginPath();
-            function startPos() {
-                return (10 + Math.pow(frame * 10 / 3, 2) / 2);
-            }
-            function endPos() {
-                return (startPos() + length());
-            }
-            function length() {
-                return ((25 - Math.pow(frame * 10 / 3 - 5, 2)));
-            }
-            function arcDistance() {
-                return (20 + Math.pow(frame * 2, 2));
-            }
-            for (let i = 0; i < 4; i++) {
-                this._ctx.moveTo(center.x + (i % 2 === 0 ? -1 : 1) * startPos(), center.y + (i < 2 ? -1 : 1) * startPos());
-                this._ctx.lineTo(center.x + (i % 2 === 0 ? -1 : 1) * endPos(), center.y + (i < 2 ? -1 : 1) * endPos());
-            }
-            this._ctx.stroke();
-            // // 선과 선 사이에 약간의 공간을 두고 호를 그리기
-            // for (let i = 0; i < 4; i++) {
-            //     this._ctx.beginPath();
-            //     // 호 그리기
-            //     const margineArc = 0.2;
-            //     this._ctx.arc( center.x , center.y , arcDistance(), Math.PI / 2 * i + margineArc + Math.PI/4, Math.PI / 2 * (i + 1) - margineArc + Math.PI/4);
-            //     this._ctx.stroke();
-            // }
+        if (userSetting.mouseZoomEffect.isOn && effectStateManager.mouseZoomSign.animation > -1) {
+            zoomEffect(this._ctx, this.lineThickness, effectStateManager.mouseZoomSign.animation, effectStateManager.mouseZoomSign.isApply, effectStateManager.mouseZoomSign.isInOut, effectStateManager.mouseZoomSign.position);
         }
         // 키보드 확대/축소 중심 이펙트
-        if (effectStateManager.keyboardZoomCenterSign.animation > -1) {
-            // 확대/축소 중심 표시
-            const animation = effectStateManager.keyboardZoomCenterSign.animation;
-            const isApply = effectStateManager.keyboardZoomCenterSign.isApply;
-            const isInOut = effectStateManager.keyboardZoomCenterSign.isInOut;
-            const center = {
-                x: this._canvas.width / 2,
-                y: this._canvas.height / 2
-            };
-            let frame;
-            if (isInOut === 'in') {
-                frame = 3 - animation / 5; // 15/5 -> 3
-            }
-            else {
-                frame = animation / 5; // 15/5 -> 3
-            }
-            let rhombus = frame * 10 + 10; // 마름모 거리
-            // 움직였는지에 따라 색상 변경
-            this._ctx.strokeStyle = isApply ? 'hsl(210, 70%, 50%)' : 'hsl(0, 70%, 50%)';
-            this._ctx.lineWidth = this.lineThickness;
-            // 중심에 작은 정마름모 그리기
-            this._ctx.beginPath();
-            this._ctx.moveTo(center.x, center.y - rhombus);
-            this._ctx.lineTo(center.x + rhombus, center.y);
-            this._ctx.lineTo(center.x, center.y + rhombus);
-            this._ctx.lineTo(center.x - rhombus, center.y);
-            this._ctx.closePath();
-            this._ctx.stroke();
-            // 십자선 그리기
-            this._ctx.beginPath();
-            function startPos() {
-                return (10 + Math.pow(frame * 10 / 3, 2) / 2);
-            }
-            function endPos() {
-                return (startPos() + length());
-            }
-            function length() {
-                return ((25 - Math.pow(frame * 10 / 3 - 5, 2)));
-            }
-            function arcDistance() {
-                return (20 + Math.pow(frame * 2, 2));
-            }
-            for (let i = 0; i < 4; i++) {
-                this._ctx.moveTo(center.x + (i % 2 === 0 ? -1 : 1) * startPos(), center.y + (i < 2 ? -1 : 1) * startPos());
-                this._ctx.lineTo(center.x + (i % 2 === 0 ? -1 : 1) * endPos(), center.y + (i < 2 ? -1 : 1) * endPos());
-            }
-            this._ctx.stroke();
-            // // 선과 선 사이에 약간의 공간을 두고 호를 그리기
-            // for (let i = 0; i < 4; i++) {
-            //     this._ctx.beginPath();
-            //     // 호 그리기
-            //     const margineArc = 0.2;
-            //     this._ctx.arc( center.x , center.y , arcDistance(), Math.PI / 2 * i + margineArc + Math.PI/4, Math.PI / 2 * (i + 1) - margineArc + Math.PI/4);
-            //     this._ctx.stroke();
-            // }
+        if (userSetting.keyboardZoomEffect.isOn && effectStateManager.keyboardZoomCenterSign.animation > -1) {
+            zoomEffect(this._ctx, this.lineThickness, effectStateManager.keyboardZoomCenterSign.animation, effectStateManager.keyboardZoomCenterSign.isApply, effectStateManager.keyboardZoomCenterSign.isInOut, { x: this._canvas.width / 2, y: this._canvas.height / 2 });
         }
     }
     resize() {

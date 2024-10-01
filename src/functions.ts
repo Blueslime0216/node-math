@@ -37,11 +37,16 @@ export function animateStart(){
 export function animate(){
     // 애니메이션이 필요한 경우 렌더링 하고 아니면 종료
     viewport.render();
+    let isStop = true;
     if (effectStateManager.keyboardZoomCenterSign.animation > -1) {
         effectStateManager.keyboardZoomCenterSign.animation -= 1;
-    } else if (effectStateManager.mouseZoomSign.animation > -1) {
+        isStop = false;
+    }
+    if (effectStateManager.mouseZoomSign.animation > -1) {
         effectStateManager.mouseZoomSign.animation -= 1;
-    } else {
+        isStop = false;
+    }
+    if (isStop) {
         // 스크린 초기화를 위해 한번 렌더링 한 뒤에 애니메이션 종료
         isAnimateOn = false;
         return;

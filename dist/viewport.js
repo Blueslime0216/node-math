@@ -80,25 +80,73 @@ export class Viewport {
         });
     }
     drawEffects() {
-        // 키보드 확대/축소 중심 표시
-        if (effectStateManager.keyboardZoomCenterSign.animation > -1 || effectStateManager.mouseZoomSign.animation > -1) {
+        // 마우스 확대/축소 중심 이펙트
+        if (effectStateManager.mouseZoomSign.animation > -1) {
             // 확대/축소 중심 표시
-            let animation = effectStateManager.keyboardZoomCenterSign.animation;
-            let isApply = effectStateManager.keyboardZoomCenterSign.isApply;
-            let isInOut = effectStateManager.keyboardZoomCenterSign.isInOut;
-            let center = {
+            const animation = effectStateManager.mouseZoomSign.animation;
+            const isApply = effectStateManager.mouseZoomSign.isApply;
+            const isInOut = effectStateManager.mouseZoomSign.isInOut;
+            const center = {
+                x: effectStateManager.mouseZoomSign.position.x,
+                y: effectStateManager.mouseZoomSign.position.y
+            };
+            let frame;
+            if (isInOut === 'in') {
+                frame = 3 - animation / 5; // 15/5 -> 3
+            }
+            else {
+                frame = animation / 5; // 15/5 -> 3
+            }
+            let rhombus = frame * 10 + 10; // 마름모 거리
+            // 움직였는지에 따라 색상 변경
+            this._ctx.strokeStyle = isApply ? 'hsl(210, 70%, 50%)' : 'hsl(0, 70%, 50%)';
+            this._ctx.lineWidth = this.lineThickness;
+            // 중심에 작은 정마름모 그리기
+            this._ctx.beginPath();
+            this._ctx.moveTo(center.x, center.y - rhombus);
+            this._ctx.lineTo(center.x + rhombus, center.y);
+            this._ctx.lineTo(center.x, center.y + rhombus);
+            this._ctx.lineTo(center.x - rhombus, center.y);
+            this._ctx.closePath();
+            this._ctx.stroke();
+            // 십자선 그리기
+            this._ctx.beginPath();
+            function startPos() {
+                return (10 + Math.pow(frame * 10 / 3, 2) / 2);
+            }
+            function endPos() {
+                return (startPos() + length());
+            }
+            function length() {
+                return ((25 - Math.pow(frame * 10 / 3 - 5, 2)));
+            }
+            function arcDistance() {
+                return (20 + Math.pow(frame * 2, 2));
+            }
+            for (let i = 0; i < 4; i++) {
+                this._ctx.moveTo(center.x + (i % 2 === 0 ? -1 : 1) * startPos(), center.y + (i < 2 ? -1 : 1) * startPos());
+                this._ctx.lineTo(center.x + (i % 2 === 0 ? -1 : 1) * endPos(), center.y + (i < 2 ? -1 : 1) * endPos());
+            }
+            this._ctx.stroke();
+            // // 선과 선 사이에 약간의 공간을 두고 호를 그리기
+            // for (let i = 0; i < 4; i++) {
+            //     this._ctx.beginPath();
+            //     // 호 그리기
+            //     const margineArc = 0.2;
+            //     this._ctx.arc( center.x , center.y , arcDistance(), Math.PI / 2 * i + margineArc + Math.PI/4, Math.PI / 2 * (i + 1) - margineArc + Math.PI/4);
+            //     this._ctx.stroke();
+            // }
+        }
+        // 키보드 확대/축소 중심 이펙트
+        if (effectStateManager.keyboardZoomCenterSign.animation > -1) {
+            // 확대/축소 중심 표시
+            const animation = effectStateManager.keyboardZoomCenterSign.animation;
+            const isApply = effectStateManager.keyboardZoomCenterSign.isApply;
+            const isInOut = effectStateManager.keyboardZoomCenterSign.isInOut;
+            const center = {
                 x: this._canvas.width / 2,
                 y: this._canvas.height / 2
             };
-            if (effectStateManager.mouseZoomSign.animation > -1) {
-                animation = effectStateManager.mouseZoomSign.animation;
-                isApply = effectStateManager.mouseZoomSign.isApply;
-                isInOut = effectStateManager.mouseZoomSign.isInOut;
-                center = {
-                    x: effectStateManager.mouseZoomSign.position.x,
-                    y: effectStateManager.mouseZoomSign.position.y
-                };
-            }
             let frame;
             if (isInOut === 'in') {
                 frame = 3 - animation / 5; // 15/5 -> 3

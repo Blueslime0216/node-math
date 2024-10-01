@@ -1,8 +1,17 @@
+// ====================================================================================================
+// 기능들
+// 여기서 각 기능을 구현한다
+// controller.ts에서 입력된 값들을 가지고 상태를 파악해 값을 조정해서 viewports.ts에 적절한 렌더링 명령을 내린다.
+// ====================================================================================================
+
 import { $_ } from "./utils/domUtils.js";
 import Controller from "./controller.js";
-import DebugStateManager from "./utils/debugStateManager.js";
-import Viewport from "./viewport.js";
+import viewport from "./viewport.js";
 import keyboardEventListener from "./keyboardEvent.js";
+import DebugStateManager from "./utils/debugStateManager.js";
+import effectStateManager from "./utils/effectStateManager.js";
+import { zoomApply, animateStart } from "./functions.js";
+
 
 // 단축키 버튼을 누른 경우 alert 창으로 단축키 목록 표시
 (document.getElementById('shortcuts') as HTMLButtonElement).addEventListener('click', () => {
@@ -22,13 +31,14 @@ import keyboardEventListener from "./keyboardEvent.js";
     );
 });
 
-const debugManager = new DebugStateManager(); // 디버그 상태 관리자 생성
 const keyListener = new keyboardEventListener(); // 키보드 이벤트 리스너 생성
+const debugManager = new DebugStateManager(); // 디버그 상태 관리자 생성
+// 다음 코드로 effectStateManager를 가져왔음 ( import effectStateManager from "./utils/effectStateManager.js"; )
 
 const canvas:HTMLCanvasElement = $_('editor') as HTMLCanvasElement; // 캔버스 가져오기
 const controller = new Controller(canvas); // 마우스 컨트롤러 생성
 
-const viewport = new Viewport(canvas); // 뷰포트 생성
+// 다음 코드로 viewport를 가져왔음 ( import viewport from "./viewport.js"; )
 
 // 뷰포트 리사이즈 이벤트
 window.onresize = viewport.resize;
@@ -45,8 +55,7 @@ canvas.addEventListener('contextmenu', (e) => {
 controller.mousedown = (e) => {
 };
 controller.mousemove = (e) => {
-    // 드래그 중인 마우스 로그 띄우기
-    // 시점 이동 기능
+    // [ 시점 이동 기능 ]
     if (controller._isMouseDragging.wheel) {
         viewport.offsetMoving.width = controller._draggedSize.wheel.width;
         viewport.offsetMoving.height = controller._draggedSize.wheel.height;
@@ -55,6 +64,7 @@ controller.mousemove = (e) => {
     }
 };
 controller.mouseup = (e) => {
+    // [ 시점 이동 기능 ]
     // 변경된 시점 적용하기
     viewport.offsetStart = viewport.offset;
     viewport.offsetMoving = { width: -1, height: -1 };
@@ -65,22 +75,51 @@ controller.wheel = (e) => {
     // 줌 조절하기
     const zoomFactor = 1.1; // 줌 인/아웃 시 사용할 배율
     const zoomAmount = e.deltaY > 0 ? 1 / zoomFactor : zoomFactor; // 줌 방향(in/out) 계산
-    // 만약 줌이 최소/최대값을 벗어나면 최소/최대값으로 설정
-    if (!(viewport.zoom*zoomAmount < viewport.zoomMin || viewport.zoom*zoomAmount > viewport.zoomMax)) {
-        viewport.zoom *= zoomAmount;
-
-        // 마우스 위치를 기준으로 줌이 조정되도록 시점 이동
-        viewport.offsetStart.x += (e.offsetX - viewport.offset.x) * (1 - zoomAmount);
-        viewport.offsetStart.y += (e.offsetY - viewport.offset.y) * (1 - zoomAmount);
-        console.log(`x : ${viewport.offset.x}, y : ${viewport.offset.y}`);
+    // 마우스 위치를 기준으로 줌이 조정되도록 시점 이동
+    // 애니메이션 주기
+    effectStateManager.mouseZoomSign = {
+        isOn: true,
+        isApply: zoomApply(viewport, zoomAmount, e.offsetX, e.offsetY),
+        isInOut: zoomAmount > 1 ? 'in' : 'out',
+        animation: 15,
+        position: { x: e.offsetX, y: e.offsetY }
     }
-
-    viewport.render();
+    animateStart();
 }
 
 // 키보드 이벤트 리스너 등록
 keyListener.keydown = (e) => {
-    if(e.code === 'ControlLeft'){
+    if(keyListener.isKeyDown('Control')){
         console.log('ctrl down');
     }
+    if(keyListener.isKeyDown('+')){
+        // 화면 중심을 기준으로 확대하는 기능
+        effectStateManager.keyboardZoomCenterSign = {
+            isOn: true,
+            isInOut: 'in',
+            animation: 15,
+            isApply: zoomApply(viewport, 1.1, canvas.width/2, canvas.height/2)
+        };
+        animateStart();
+    }
+    if(keyListener.isKeyDown('-')){
+        // 화면 중심을 기준으로 축소하는 기능
+        effectStateManager.keyboardZoomCenterSign = {
+            isOn: true,
+            isInOut: 'out',
+            animation: 15,
+            isApply: zoomApply(viewport, 1/1.1, canvas.width/2, canvas.height/2)
+        };
+        animateStart();
+    }
+
+    viewport.render();
 };
+keyListener.keyup = (e) => {
+    if(!keyListener.isKeyDown('+') && !keyListener.isKeyDown('-')){
+        // effectStateManager.keyboardZoomCenterSign.isOn = false;
+    }
+
+    viewport.render();
+};
+

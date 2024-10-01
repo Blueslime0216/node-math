@@ -10,16 +10,21 @@ export class Size {
         this.height = height;
     }
 }
-export class Rect {
-    constructor(x, y, width, height) {
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-    }
-}
-export class Polygon {
-    constructor(points) {
-        this.points = points;
-    }
-}
+// export class Rect implements Rect {
+//     x: number;
+//     y: number;
+//     width: number;
+//     height: number;
+//     constructor(x: number, y: number, width: number, height: number) {
+//         this.x = x;
+//         this.y = y;
+//         this.width = width;
+//         this.height = height;
+//     }
+// }
+// export class Polygon implements Polygon {
+//     points: Point[];
+//     constructor(points: Point[]) {
+//         this.points = points;
+//     }
+// }

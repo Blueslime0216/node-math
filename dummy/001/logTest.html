@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그 파일 시각화</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        #fileInput {
+            display: block;
+            margin: 20px auto;
+        }
+        #chartContainer {
+            width: 100%;
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>로그 파일 시각화</h1>
+        <input type="file" id="fileInput" accept=".txt">
+        <div id="chartContainer">
+            <canvas id="logChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const chartContainer = document.getElementById('chartContainer');
+        let logChart;
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const lines = content.split('\n');
+                const data = lines.map(line => {
+                    const [source, value, timestamp] = line.split(' ');
+                    return { source, value: parseFloat(value), timestamp: parseInt(timestamp) };
+                });
+
+                createChart(data);
+            };
+
+            reader.readAsText(file);
+        });
+
+        function createChart(data) {
+            if (logChart) {
+                logChart.destroy();
+            }
+
+            const ctx = document.getElementById('logChart').getContext('2d');
+            
+            // 시간 간격 계산 (원시 타임스탬프 값의 차이)
+            const timeIntervals = data.map((item, index) => {
+                if (index === 0) return 0;
+                return item.timestamp - data[index - 1].timestamp;
+            });
+
+            logChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: timeIntervals,
+                    datasets: [{
+                        label: data[0].source,
+                        data: data.map(item => item.value),
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '이전 실행과의 타임스탬프 차이'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '값'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '로그 파일 시각화'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return `타임스탬프 차이: ${context[0].label}`;
+                                },
+                                label: function(context) {
+                                    return `값: ${context.raw}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

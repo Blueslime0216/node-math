@@ -1,6 +1,19 @@
-// T:type + Debug:debug
-type TDebug = (boolean|number)[]
+// ====================================================================================================
+// 각종 타입들
+// ====================================================================================================
 
+interface IDebug{
+    isOn:boolean;
+    [key: string]: any;
+}
+
+interface IEffect{
+    isOn:boolean;
+    isInOut?:'in' | 'out';
+    [key: string]: any;
+}
+
+// (???) 구지 열거형으로 하는 이유가 있나 확인해보기
 enum ESocketType{
     input = 'input',
     output = 'output'
@@ -16,6 +29,7 @@ interface Size{
     height:number;
 }
 
+// (???) 이거 드래그 선택 할 때만 쓰는 것 같은데 더 좋은 작명 생각하자
 interface Rect{
     x:number;
     y:number;
@@ -23,8 +37,9 @@ interface Rect{
     height:number;
 }
 
-type Polygon = Point[]
+// type Polygon = Point[]
 
+// (???) 이거 쓰는 거임?
 interface DragMouseEvent extends MouseEvent {
     draggedX:number;
     draggedY:number;

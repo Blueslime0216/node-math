@@ -1,7 +1,10 @@
 {
     "routes": [
       { "handle": "filesystem" },
-      { "src": "/.*", "dest": "/index.html" }
+      { "src": "/.*", "dest": "/public/index.html" }
     ],
-    "trailingSlash": true
+    "trailingSlash": true,
+    "rewrites": [
+        {"source": "/(.*)", "destination": "/"}
+    ]
 }

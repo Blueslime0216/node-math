@@ -105,12 +105,22 @@ export class Viewport{
 
     drawEffects(){
         // 마우스 확대/축소 중심 이펙트
-        if (userSetting.mouseZoomEffect.isOn && effectStateManager.mouseZoomSign.animation > -1) {
-            zoomEffect(this._ctx,this.lineThickness, effectStateManager.mouseZoomSign.animation, effectStateManager.mouseZoomSign.isApply, effectStateManager.mouseZoomSign.isInOut as string, effectStateManager.mouseZoomSign.position);
+        if (userSetting.mouseZoomEffect.isOn && effectStateManager.mouseZoomSign.isOn === true) {
+            zoomEffect(
+                this._ctx,
+                this.lineThickness,
+                (new Date().getTime()),
+                effectStateManager.mouseZoomSign
+            );
         }
         // 키보드 확대/축소 중심 이펙트
         if (userSetting.keyboardZoomEffect.isOn && effectStateManager.keyboardZoomCenterSign.animation > -1) {
-            zoomEffect(this._ctx,this.lineThickness, effectStateManager.keyboardZoomCenterSign.animation, effectStateManager.keyboardZoomCenterSign.isApply, effectStateManager.keyboardZoomCenterSign.isInOut as string, { x: this._canvas.width / 2, y: this._canvas.height / 2 });
+            zoomEffect(
+                this._ctx,this.lineThickness,
+                (new Date().getTime()),
+                effectStateManager.keyboardZoomCenterSign,
+                { x: this._canvas.width / 2, y: this._canvas.height / 2 }
+            );
         }
     }
 

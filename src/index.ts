@@ -86,9 +86,9 @@ controller.wheel = (e) => {
     // 애니메이션 주기
     effectStateManager.mouseZoomSign = {
         isOn: true,
+        startTime: (new Date().getTime()),
         isApply: zoomApply(viewport, zoomAmount, e.offsetX, e.offsetY),
         isInOut: zoomAmount > 1 ? 'in' : 'out',
-        animation: 15,
         position: { x: e.offsetX, y: e.offsetY }
     }
     animateStart();

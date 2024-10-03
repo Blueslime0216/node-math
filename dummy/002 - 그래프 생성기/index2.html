@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Function Graph Plotter</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+        }
+        #inputArea {
+            width: 400px;
+            margin-right: 20px;
+            padding: 15px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            display: flex;
+            flex-direction: column;
+        }
+        #functionInput {
+            flex-grow: 1;
+            resize: none;
+            background-color: #2a2a2a;
+            color: #ffffff;
+            border: 1px solid #555;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        canvas {
+            border: 1px solid #555;
+            background-color: #1e1e1e;
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <div id="inputArea">
+            <textarea id="functionInput" rows="10" placeholder="function getY(x) {&#10;   return x * 2;&#10;}" required></textarea>
+            <button id="generateBtn">생성</button>
+        </div>
+        <canvas id="graphCanvas" width="600" height="800"></canvas>
+    </div>
+
+    <script>
+        document.getElementById('functionInput').value = `function getY(x) {
+    return x * 2;
+}`;
+        document.getElementById('generateBtn').addEventListener('click', function() {
+            const functionInput = document.getElementById('functionInput').value;
+
+            // Check for required structure
+            if (!functionInput.startsWith("function getY(x) {") || !functionInput.includes("return") || !functionInput.endsWith("}")) {
+                alert("올바른 형식으로 함수를 입력해주세요.");
+                return;
+            }
+
+            // Create a function from user input
+            const getY = new Function("x", functionInput.slice(18, -1));
+
+            const canvas = document.getElementById('graphCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Graph settings
+            const width = canvas.width;
+            const height = canvas.height;
+            const padding = 40;
+
+            // Draw x-axis
+            ctx.strokeStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(padding, height / 2);
+            ctx.lineTo(width - padding, height / 2);
+            ctx.stroke();
+
+            // Draw x-axis labels
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText("0", padding, height / 2 + 20);
+            ctx.fillText("1", width - padding, height / 2 + 20);
+            
+            // Draw y-axis labels
+            ctx.fillText("-1", padding - 20, height / 2 + (height / 2 - padding));
+            ctx.fillText("0", padding - 20, height / 2 + 20);
+            ctx.fillText("1", padding - 20, height / 2 - (height / 2 - padding));
+
+            // Draw graph
+            ctx.fillStyle = '#00ff00';
+            for (let i = 0; i <= 1000; i++) {
+                const x = i / 1000; // x from 0 to 1
+                const y = getY(x); // get y value from user function
+                const canvasX = padding + (x * (width - 2 * padding)); // translate x to canvas
+                const canvasY = height / 2 - (y * (height / 2 - padding)); // translate y to canvas
+                ctx.fillRect(canvasX, canvasY, 2, 2); // draw point
+            }
+        });
+    </script>
+</body>
+</html>

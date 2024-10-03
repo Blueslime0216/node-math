@@ -9,6 +9,7 @@ interface IDebug{
 
 interface IEffect{
     isOn:boolean;
+    // startTime?:number;
     isInOut?:'in' | 'out';
     [key: string]: any;
 }

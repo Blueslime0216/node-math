@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cubic Bezier Converter with Animation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #121212;
+            color: #ffffff;
+            border-radius: 10px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 10px 0;
+            width: calc(100% - 22px);
+            box-sizing: border-box;
+            border: none;
+            border-radius: 5px;
+            background-color: #333;
+            color: #fff;
+            transition: background-color 0.3s ease;
+        }
+        input:focus, button:hover {
+            background-color: #555;
+        }
+        pre {
+            background-color: #222;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+        #canvas {
+            border: 1px solid #444;
+            width: 400px;  /* Set to fixed width */
+            height: 400px; /* Set to fixed height */
+            position: relative;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-start;
+            margin-top: 20px; /* Added margin for spacing */
+        }
+        .point {
+            position: absolute;
+            width: 8px; /* Increased size for better visibility */
+            height: 8px; /* Increased size for better visibility */
+            background-color: #ff4081;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+        .axis {
+            position: absolute;
+            background-color: #444;
+        }
+        .x-axis {
+            height: 2px;
+            width: 100%;
+            bottom: 0;
+            left: 0;
+        }
+        .y-axis {
+            width: 2px;
+            height: 100%;
+            left: 0;
+            bottom: 0;
+        }
+        .label {
+            color: #bbb;
+            position: absolute;
+            font-size: 12px;
+        }
+        #xLabel {
+            bottom: 5px;
+            right: 5px;
+        }
+        #yLabel {
+            left: 5px;
+            top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cubic Bezier Converter with Animation</h1>
+    <label for="bezierInput">CSS Cubic Bezier Code:</label>
+    <input type="text" id="bezierInput" placeholder="예: cubic-bezier(.17,.56,.39,.91)">
+    <button id="convertBtn">변환하기</button>
+    <h2>변환된 JavaScript 함수:</h2>
+    <pre id="result"></pre>
+
+    <h2>그래프:</h2>
+    <div id="canvas">
+        <div class="axis x-axis"></div>
+        <div class="axis y-axis"></div>
+        <div class="label" id="xLabel">X</div>
+        <div class="label" id="yLabel">Y</div>
+    </div>
+    <button id="animateBtn" style="display:none;">애니메이션 시작</button>
+
+    <script>
+        document.getElementById('convertBtn').onclick = function() {
+            const bezierInput = document.getElementById('bezierInput').value;
+            const bezierMatch = bezierInput.match(/cubic-bezier\(([^)]+)\)/);
+
+            if (bezierMatch) {
+                const values = bezierMatch[1].split(',').map(v => parseFloat(v.trim()));
+                if (values.length === 4) {
+                    const [x1, y1, x2, y2] = values;
+                    const jsFunction = `
+function cubicBezier(_factor) {
+    const x = ${x1} * Math.pow(_factor, 3) + 3 * ${x2} * Math.pow(_factor, 2) * (1 - _factor) + 3 * ${x1} * _factor * Math.pow(1 - _factor, 2) + Math.pow(1 - _factor, 3);
+    const y = ${y1} * Math.pow(_factor, 3) + 3 * ${y2} * Math.pow(_factor, 2) * (1 - _factor) + 3 * ${y1} * _factor * Math.pow(1 - _factor, 2) + Math.pow(1 - _factor, 3);
+    return y;
+}
+                    `.trim();
+
+                    document.getElementById('result').textContent = jsFunction;
+                    drawGraph(x1, y1, x2, y2);
+                } else {
+                    document.getElementById('result').textContent = '잘못된 형식입니다. 4개의 값이 필요합니다.';
+                }
+            } else {
+                document.getElementById('result').textContent = '잘못된 형식입니다. cubic-bezier() 형식을 확인하세요.';
+            }
+        };
+
+        function drawGraph(x1, y1, x2, y2) {
+            const canvas = document.getElementById('canvas');
+            canvas.innerHTML = ''; // Clear previous points
+            const points = 100;
+
+            // Draw axes
+            const xAxis = document.createElement('div');
+            xAxis.className = 'axis x-axis';
+            canvas.appendChild(xAxis);
+            const yAxis = document.createElement('div');
+            yAxis.className = 'axis y-axis';
+            canvas.appendChild(yAxis);
+
+            // Draw points for the bezier curve
+            for (let i = 0; i <= points; i++) {
+                const t = i / points;
+                const x = cubicBezierX(t, x1, x2);
+                const y = cubicBezierY(t, y1, y2);
+                const point = document.createElement('div');
+                point.classList.add('point');
+                point.style.left = `${x * 100}%`;
+                point.style.bottom = `${y * 100}%`;
+                canvas.appendChild(point);
+            }
+
+            // Show the animation button
+            document.getElementById('animateBtn').style.display = 'block';
+        }
+
+        function cubicBezierX(t, x1, x2) {
+            return 3 * x1 * Math.pow(t, 2) * (1 - t) + 3 * x2 * t * (1 - t) * (1 - t) + t * t * t;
+        }
+
+        function cubicBezierY(t, y1, y2) {
+            return 3 * y1 * Math.pow(t, 2) * (1 - t) + 3 * y2 * t * (1 - t) * (1 - t) + t * t * t;
+        }
+
+        document.getElementById('animateBtn').onclick = function() {
+            const points = document.querySelectorAll('.point');
+            let index = 0;
+
+            function animate() {
+                if (index < points.length) {
+                    points[index].style.backgroundColor = `rgb(255, 0, 0)`; // Changed color for better visibility
+                    points[index].style.transition = 'transform 0.3s ease'; // Adjusted transition
+                    index++;
+                    setTimeout(animate, 50); // Adjust the speed of the animation
+                }
+            }
+
+            animate();
+        };
+    </script>
+</body>
+</html>

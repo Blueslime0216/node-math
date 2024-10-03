@@ -36,19 +36,11 @@ export function animateStart(){
     }
 }
 export function animate(){
-    // 애니메이션이 필요한 경우 렌더링 하고 아니면 종료
+    // 스크린 초기화를 위해 먼저 렌더링 한번 하기
     viewport.render();
-    let isStop = true;
-    if (effectStateManager.keyboardZoomCenterSign.animation > -1) {
-        effectStateManager.keyboardZoomCenterSign.animation -= 1;
-        isStop = false;
-    }
-    if (effectStateManager.mouseZoomSign.animation > -1) {
-        effectStateManager.mouseZoomSign.animation -= 1;
-        isStop = false;
-    }
-    if (isStop) {
-        // 스크린 초기화를 위해 한번 렌더링 한 뒤에 애니메이션 종료
+    // 애니메이션이 필요 없다면 종료하기
+    if (!effectStateManager.keyboardZoomCenterSign.isOn &&
+        !effectStateManager.mouseZoomSign.isOn) {
         isAnimateOn = false;
         return;
     }
@@ -58,47 +50,65 @@ export function animate(){
 
 
 
-export function zoomEffect(ctx: CanvasRenderingContext2D, lineThickness: number, animation: number, isApply: boolean, isInOut: string, center: Point) {
+export function zoomEffect(ctx: CanvasRenderingContext2D, lineThickness: number, _nowTime: number, _setting: IEffect, _center: Point=_setting.position) {
+    const isApply:boolean = _setting.isApply;
+    const isInOut:string = _setting.isInOut as string;
+    const center:Point = _center;
     // 확대/축소 중심 표시
-    let frame: number;
-    if (isInOut === 'in') {
-        frame = 3 - animation / 5; // 15/5 -> 3
-    } else {
-        frame = animation / 5; // 15/5 -> 3
+    let _time: number;
+    _time = _nowTime - _setting.startTime; // 0 -> 200
+    const _factor = _time/200;
+    // 프레임이 200을 넘어가면 애니메이션 종료
+    if (_time > 200) {
+        _setting.isOn = false;
+        return;
     }
-    let rhombus = frame * 10 + 10; // 마름모 거리
+    
+    // 글로우 효과 주기
+    ctx.shadowBlur = 10;
+    ctx.lineWidth = lineThickness + 1;
     // 움직였는지에 따라 색상 변경
-    ctx.strokeStyle = isApply ? 'hsl(210, 70%, 60%)' : 'hsl(0, 70%, 50%)';
-    ctx.lineWidth = lineThickness;
-    // // 중심에 작은 정마름모 그리기
-    // ctx.beginPath();
-    // ctx.moveTo(center.x, center.y - rhombus);
-    // ctx.lineTo(center.x + rhombus, center.y);
-    // ctx.lineTo(center.x, center.y + rhombus);
-    // ctx.lineTo(center.x - rhombus, center.y);
-    // ctx.closePath();
-    // ctx.stroke();
-    // 십자선 그리기
+    if (isApply) {
+        ctx.strokeStyle = 'hsl(210, 100%, 60%)';
+        ctx.shadowColor = 'hsl(210, 100%, 60%)';
+    } else {
+        ctx.strokeStyle = 'hsl(0, 70%, 50%)';
+        ctx.shadowColor = 'hsl(0, 70%, 50%)';
+    }
+
+    // 함수 선언
     ctx.beginPath();
     function startPos() {
-        return (10 + Math.pow(frame * 10 / 3, 2) / 2);
+        if (isInOut === 'in') {
+            return (1 - Math.pow(1 - _factor, 3))*50 + 10;
+        } else {
+            return (Math.pow(1 - _factor, 3))*50 + 25;
+        }
     }
     function endPos() {
         return (startPos() + length());
     }
     function length() {
-        return ((25 - Math.pow(frame * 10 / 3 - 5, 2)));
+        if (isInOut === 'in') {
+            return (Math.pow(1 - _factor, 3))*25;
+        } else {
+            return (Math.pow(1 - _factor, 3))*25;
+        }
     }
-    function arcDistance() {
-        return (20 + Math.pow(frame * 2, 2));
-    }
-    // 선 그리기
+    // 십자선 그리기
     for (let i = 0; i < 4; i++) {
         ctx.moveTo(center.x + (i % 2 === 0 ? -1 : 1) * startPos(), center.y + (i < 2 ? -1 : 1) * startPos());
         ctx.lineTo(center.x + (i % 2 === 0 ? -1 : 1) * endPos(), center.y + (i < 2 ? -1 : 1) * endPos());
     }
     ctx.stroke();
-    // 선과 선 사이에 약간의 공간을 두고 호를 그리기
+    function arcDistance() {
+        if (isInOut === 'in') {
+            return (1 - Math.pow(1 - _factor, 3))*50;
+        } else {
+            return 50 - (1 - Math.pow(1 - _factor, 3))*50 + 25;
+        }
+    }
+    // // 선과 선 사이에 약간의 공간을 두고 호를 그리기
     for (let i = 0; i < 4; i++) {
         ctx.beginPath();
         // 호 그리기
@@ -106,4 +116,7 @@ export function zoomEffect(ctx: CanvasRenderingContext2D, lineThickness: number,
         ctx.arc( center.x , center.y , arcDistance(), Math.PI / 2 * i + margineArc + Math.PI/4, Math.PI / 2 * (i + 1) - margineArc + Math.PI/4);
         ctx.stroke();
     }
+
+    // 글로우 효과 제거
+    ctx.shadowBlur = 0;
 }

@@ -55,8 +55,7 @@ export function zoomEffect(ctx: CanvasRenderingContext2D, lineThickness: number,
     const isInOut:string = _setting.isInOut as string;
     const center:Point = _center;
     // 확대/축소 중심 표시
-    let _time: number;
-    _time = _nowTime - _setting.startTime; // 0 -> 200
+    let _time = _nowTime - _setting.startTime; // 0 -> 200
     const _factor = _time/200;
     // 프레임이 200을 넘어가면 애니메이션 종료
     if (_time > 200) {
@@ -105,7 +104,7 @@ export function zoomEffect(ctx: CanvasRenderingContext2D, lineThickness: number,
         if (isInOut === 'in') {
             return (1 - Math.pow(1 - _factor, 3))*50;
         } else {
-            return 50 - (1 - Math.pow(1 - _factor, 3))*50 + 25;
+            return 50 - (1 - Math.pow(1 - _factor, 3))*50 + 35;
         }
     }
     // // 선과 선 사이에 약간의 공간을 두고 호를 그리기

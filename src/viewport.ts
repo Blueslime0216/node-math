@@ -8,7 +8,7 @@ import Node from "./node/node.js";
 import Socket from "./node/socket.js";
 import { Point } from "./utils/fieldUtils.js";
 import effectStateManager from "./utils/effectStateManager.js";
-import { zoomEffect } from "./utils/functions.js";
+import { zoomEffect } from "./utils/effectFunctions.js";
 import userSetting from "./utils/userSetting.js";
 
 
@@ -114,12 +114,12 @@ export class Viewport{
             );
         }
         // 키보드 확대/축소 중심 이펙트
-        if (userSetting.keyboardZoomEffect.isOn && effectStateManager.keyboardZoomCenterSign.animation > -1) {
+        if (userSetting.keyboardZoomEffect.isOn && effectStateManager.keyboardZoomCenterSign.isOn === true) {
             zoomEffect(
-                this._ctx,this.lineThickness,
+                this._ctx,
+                this.lineThickness,
                 (new Date().getTime()),
                 effectStateManager.keyboardZoomCenterSign,
-                { x: this._canvas.width / 2, y: this._canvas.height / 2 }
             );
         }
     }

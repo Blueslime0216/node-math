@@ -31,7 +31,7 @@ export default class Socket{
         _ctx.fillStyle = 'hsl(210, 70%, 50%)';
         _ctx.beginPath();
         _ctx.arc(_x, _y + this.index * gridSpacing, _radius, 0, Math.PI * 2);
-        console.log(_x, _y, this.index);
+        // console.log(_x, _y, this.index);
         _ctx.fill();
         _ctx.stroke();
 

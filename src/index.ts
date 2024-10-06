@@ -89,7 +89,7 @@ controller.wheel = (e) => {
         startTime: (new Date().getTime()),
         isApply: zoomApply(viewport, zoomAmount, e.offsetX, e.offsetY),
         isInOut: zoomAmount > 1 ? 'in' : 'out',
-        position: { x: e.offsetX, y: e.offsetY }
+        position: { x: e.offsetX, y: e.offsetY },
     }
     animateStart();
 }
@@ -99,23 +99,17 @@ keyListener.keydown = (e) => {
     if(keyListener.isKeyDown('Control')){
         console.log('ctrl down');
     }
-    if(keyListener.isKeyDown('+')){
+    if(keyListener.isKeyDown('+') || keyListener.isKeyDown('-')){
         // 화면 중심을 기준으로 확대하는 기능
         effectStateManager.keyboardZoomCenterSign = {
             isOn: true,
-            isInOut: 'in',
-            animation: 15,
-            isApply: zoomApply(viewport, 1.1, canvas.width/2, canvas.height/2)
-        };
-        animateStart();
-    }
-    if(keyListener.isKeyDown('-')){
-        // 화면 중심을 기준으로 축소하는 기능
-        effectStateManager.keyboardZoomCenterSign = {
-            isOn: true,
-            isInOut: 'out',
-            animation: 15,
-            isApply: zoomApply(viewport, 1/1.1, canvas.width/2, canvas.height/2)
+            startTime: (new Date().getTime()),
+            isApply: zoomApply( viewport,
+                                (keyListener.isKeyDown('+') ? 1.1 : 0.9),
+                                canvas.width/2,
+                                canvas.height/2),
+            isInOut: keyListener.isKeyDown('+') ? 'in' : 'out',
+            position: { x: canvas.width/2, y: canvas.height/2 },
         };
         animateStart();
     }

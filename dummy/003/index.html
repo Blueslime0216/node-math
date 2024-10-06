@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이미지 효과 적용기</title>
+    <script src="https://evanw.github.io/glfx.js/glfx.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            width: 816px;
+            height: 624px;
+        }
+    </style>
+</head>
+<body>
+    <h1>이미지 효과 적용기</h1>
+    <input type="file" id="upload" accept="image/*" />
+    <canvas id="sourceCanvas" width="816" height="624"></canvas>
+
+    <script>
+        const lines = new Image();
+        lines.src = './effect.png';
+        // 이미지 업로드 핸들러
+        const upload = document.getElementById('upload');
+        const sourceCanvas = document.getElementById('sourceCanvas');
+        let srcCtx = sourceCanvas.getContext('2d');
+
+        // lines 이미지가 로드된 후 fakeCRT 함수를 호출
+        lines.onload = function() {
+            window.addEventListener('load', fakeCRT, false);
+        };
+
+        function fakeCRT() {
+            let glcanvas, source, ctx, texture, w, h, hw, hh, w75;
+
+            // WebGL 캔버스 생성
+            try {
+                glcanvas = fx.canvas();
+            } catch (e) {
+                console.error("WebGL을 지원하지 않습니다.");
+                return;
+            }
+
+            source = document.querySelector('#sourceCanvas');
+            ctx = source.getContext('2d');
+
+            // 소스 캔버스를 텍스처로 사용
+            texture = glcanvas.texture(source);
+
+            // 캔버스 크기 설정
+            w = source.width;
+            h = source.height;
+
+            // WebGL 캔버스를 DOM에 추가
+            source.parentNode.insertBefore(glcanvas, source);
+            source.style.display = 'none';
+            glcanvas.className = source.className;
+            glcanvas.id = source.id;
+            source.id = 'old_' + source.id;
+
+            // 소스 캔버스에 스캔 라인 그리기
+            if (lines.complete) {
+                ctx.drawImage(lines, 0, 0, w, h);
+            }
+
+            // 최신 소스 프레임 로드
+            texture.loadContentsOf(source);
+
+            // WebGL 효과 적용
+            glcanvas.draw(texture)
+                .bulgePinch(w/2, h/2, w*2, -0.05)
+                .vignette(0.25, 0.74)
+                .update();
+        }
+
+        upload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // 캔버스에 이미지를 그립니다.
+                    srcCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+                    srcCtx.drawImage(img, 0, 0, sourceCanvas.width, sourceCanvas.height);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            fakeCRT();
+        });
+    </script>
+</body>
+</html>

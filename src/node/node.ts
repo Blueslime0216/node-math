@@ -7,6 +7,7 @@ export default class Node{
     bounds:Rect = {x:0, y:0, width:0, height:0}; // 노드의 바운더리
 
     color:string = 'hsl(210, 70%, 50%)'; // 노드의 색상
+    bgColor:string = 'hsla(210, 70%, 50%)'; // 노드의 배경 색상
     type:string = 'node'; // 노드의 타입
 
     isHover:boolean = false; // 마우스가 노드 위에 있는지 여부
@@ -29,7 +30,6 @@ export default class Node{
             this.createSockets(1, 'output');
         };
         
-        // 홀수로 설정하자(그래야 그리드에 예쁘게 맞춰짐)
         this.width = 3; // 노드의 너비 (그리드 단위)
         this.height = 2 + Math.max(this.sockets.input.length, this.sockets.output.length); // 노드의 높이 (그리드 단위)
     }
@@ -93,7 +93,7 @@ export default class Node{
         // } else { // 기본 상태이면
         //     ctx.fillStyle = 'hsl(210, 70%, 50%)';
         // }
-        ctx.fillStyle = this.isHover ? 'hsl(210, 70%, 60%)' : this.color;
+        ctx.fillStyle = this.bgColor;
 
         // 노드 그리기
         ctx.beginPath(); // 그리기 시작

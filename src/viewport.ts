@@ -66,6 +66,9 @@ export class Viewport{
     render(){
         // 캔버스 비우기
         this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+        // 배경 채우기
+        this._ctx.fillStyle = 'hsl(0, 0%, 10%)';
+        this._ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
 
         // 그리드 그리기
         this.drawGrid();
@@ -79,22 +82,86 @@ export class Viewport{
 
     drawGrid(){
         this._ctx.strokeStyle = 'hsl(0, 0%, 25%)'; // 그리드 선 색상 설정
-        this._ctx.lineWidth = 1; // 그리드 선 두께 설정
+        // 그리드 선 두께 설정 (확대하면 선명하게, 축소하면 연하게 보이게 설정하려고 gridSpacing 가져옴)
+        const lineWidth = Math.min(this.gridSpacing/75, 2);
+        const lineWidthBold = lineWidth*userSetting.gridCustom.lineWidthBoldStrong;
+        // const lineDashMargine = this.gridSpacing * userSetting.gridCustom.lineDashMargine/100;
+        // const dashLength = userSetting.gridCustom.isOn ? this.gridSpacing/5 : 0;
+        // 그리드 선 길이 설정
+        const lineLength = this.gridSpacing * (userSetting.gridCustom.isOn ? userSetting.gridCustom.lineLength : 100)/100;
+        const lineMargin = this.gridSpacing * (100 - (userSetting.gridCustom.isOn ? userSetting.gridCustom.lineLength : 100))/100;
+        const dashLength = this.gridSpacing * (userSetting.gridCustom.isOn ? userSetting.gridCustom.dashLength : 0)/100;
+        const dashMargin = this.gridSpacing * (100 - (userSetting.gridCustom.isOn ? userSetting.gridCustom.dashLength : 0))/100;
+        // 자 속성
+        this._ctx.fillStyle = 'hsl(0, 0%, 100%)';
+        this._ctx.font = '14px Arial';
+        this._ctx.textAlign = 'center';
+        this._ctx.textBaseline = 'middle';
 
         // 수직선 그리기
+        let index = -Number((this.offset.x/this.gridSpacing).toString().split('.')[0]); // 눈금 자 좌표 기록용
         for (let x = this.offset.x % this.gridSpacing; x < this._canvas.width; x += this.gridSpacing) {
+            this._ctx.lineWidth = lineWidth;
+            this._ctx.setLineDash([lineLength, lineMargin]);
+            this._ctx.lineDashOffset = -this.offset.y - lineMargin/2;
+
             this._ctx.beginPath();
             this._ctx.moveTo(x, 0);
             this._ctx.lineTo(x, this._canvas.height);
             this._ctx.stroke();
+            this._ctx.closePath();
+
+
+            this._ctx.lineWidth = lineWidthBold;
+            this._ctx.setLineDash([dashLength, dashMargin]);
+            this._ctx.lineDashOffset = -this.offset.y - dashMargin/2 + this.gridSpacing/2;
+
+            this._ctx.beginPath();
+            this._ctx.moveTo(x, 0);
+            this._ctx.lineTo(x, this._canvas.height);
+            this._ctx.stroke();
+            this._ctx.closePath();
+
+
+            // 세로 눈금 자 표시
+            if(userSetting.ruler.isOn && userSetting.ruler.horizontal){
+                this._ctx.fillText((index).toString().split('.')[0], x, 16);
+                index++;
+            }
         }
+
+        index = -Number((this.offset.y/this.gridSpacing).toString().split('.')[0]); // 눈금 자 좌표 기록
         // 수평선 그리기
         for (let y = this.offset.y % this.gridSpacing; y < this._canvas.height; y += this.gridSpacing) {
+            this._ctx.lineWidth = lineWidth;
+            this._ctx.setLineDash([lineLength, lineMargin]);
+            this._ctx.lineDashOffset = -this.offset.x - lineMargin/2;
+
             this._ctx.beginPath();
             this._ctx.moveTo(0, y);
             this._ctx.lineTo(this._canvas.width, y);
             this._ctx.stroke();
+
+
+            this._ctx.lineWidth = lineWidthBold;
+            this._ctx.setLineDash([dashLength, dashMargin]);
+            this._ctx.lineDashOffset = -this.offset.x - dashMargin/2 + this.gridSpacing/2;
+
+            this._ctx.beginPath();
+            this._ctx.moveTo(0, y);
+            this._ctx.lineTo(this._canvas.width, y);
+            this._ctx.stroke();
+
+
+            // 가로 눈금 자 표시
+            if(userSetting.ruler.isOn && userSetting.ruler.vertical){
+                this._ctx.fillText((index).toString().split('.')[0], 16, y);
+                index++;
+            }
         }
+
+        // 점선 종료
+        this._ctx.setLineDash([]);
     }
 
     drawNodes(){

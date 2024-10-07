@@ -24,6 +24,7 @@ button {
 #btnContainer {
     position: fixed;
     top: 10vh;
+
     display: flex;
     justify-content: center;
     align-items: center;
@@ -36,4 +37,17 @@ button {
     border: 2px solid hsl(0, 0%, 90%);
 
     overflow: hidden;
+}
+
+#rangeContainer {
+    position: fixed;
+    top: 15vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1vh;
+}
+#rangeContainer > label {
+    color: hsl(0, 0%, 90%);
 }

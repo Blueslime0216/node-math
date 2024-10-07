@@ -13,6 +13,7 @@ import Socket from "./node/socket.js";
 import { zoomApply, animateStart } from "./utils/functions.js";
 import debugManager from "./utils/debugStateManager.js";
 import effectStateManager from "./utils/effectStateManager.js";
+import userSetting from "./utils/userSetting.js";
 
 
 // 단축키 버튼을 누른 경우 alert 창으로 단축키 목록 표시
@@ -117,3 +118,19 @@ keyListener.keydown = (e) => {
     viewport.render();
 };
 
+// range로 값 변경 디버깅
+(document.getElementById('range1') as HTMLButtonElement).addEventListener('input', () => {
+    userSetting.gridCustom.lineWidthBoldStrong = Number((document.getElementById('range1') as HTMLInputElement).value);
+
+    viewport.render();
+});
+(document.getElementById('range2') as HTMLButtonElement).addEventListener('input', () => {
+    userSetting.gridCustom.lineLength = Number((document.getElementById('range2') as HTMLInputElement).value);
+
+    viewport.render();
+});
+(document.getElementById('range3') as HTMLButtonElement).addEventListener('input', () => {
+    userSetting.gridCustom.dashLength = Number((document.getElementById('range3') as HTMLInputElement).value);
+
+    viewport.render();
+});

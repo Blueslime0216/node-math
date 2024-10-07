@@ -36,121 +36,16 @@ export default class Controller {
 
         // 마우스가 눌렸을 때 이벤트 처리
         this._element.addEventListener('mousedown', (e) => {
-            // 마우스 클릭 시작 위치 저장
-            switch (e.button) {
-                case 0:
-                    this._mouseStart.left = { x: e.clientX, y: e.clientY };  // 마우스 왼쪽 버튼이 눌렸으면
-                    break;
-                case 1:
-                    this._mouseStart.wheel = { x: e.clientX, y: e.clientY };  // 마우스 휠 버튼이 눌렸으면
-                    break;
-                case 2:
-                    this._mouseStart.right = { x: e.clientX, y: e.clientY };  // 마우스 오른쪽 버튼이 눌렸으면
-                    break;
-            }
-            // 눌려진 마우스 버튼 표시
-            switch (e.button) {
-                case 0:
-                    this._mouseDown.left = true;  // 마우스 왼쪽 버튼이 눌렸으면
-                    break;
-                case 1:
-                    this._mouseDown.wheel = true;  // 마우스 휠 버튼이 눌렸으면
-                    break;
-                case 2:
-                    this._mouseDown.right = true;  // 마우스 오른쪽 버튼이 눌렸으면
-                    break;
-            }
-            // 
-            switch (e.button) {
-                case 0:
-                    this._isMouseDragging.left = false;  // 마우스 왼쪽 버튼 드래그 상태 초기화
-                    break;
-                case 1:
-                    this._isMouseDragging.wheel = false;  // 마우스 휠 버튼 드래그 상태 초기화
-                    break;
-                case 2:
-                    this._isMouseDragging.right = false;  // 마우스 오른쪽 버튼 드래그 상태 초기화
-                    break;
-            }
             this._mousedown(e);  // 커스텀 mousedown 핸들러 호출
         });
 
         // 마우스가 움직였을 때 이벤트 처리
         this._element.addEventListener('mousemove', (e) => {
-            // 마우스가 눌려있으면 드래그 중으로 표시
-            if (this.isMouseDown.left) { // 마우스 왼쪽 버튼이 눌려있으면
-                // 왼쪽 버튼 드래그 중으로 표시
-                this._isMouseDragging.left = true;
-                // 드래그 거리 저장
-                this._draggedSize.left = new Size(e.clientX - this._mouseStart.left.x, e.clientY - this._mouseStart.left.y);
-            }
-            if (this.isMouseDown.wheel) { // 마우스 휠 버튼이 눌려있으면
-                // 휠 버튼 드래그 중으로 표시
-                this._isMouseDragging.wheel = true;
-                // 드래그 거리 저장
-                this._draggedSize.wheel = new Size(e.clientX - this._mouseStart.wheel.x, e.clientY - this._mouseStart.wheel.y);
-            }
-            if (this.isMouseDown.right) { // 마우스 오른쪽 버튼이 눌려있으면
-                // 오른쪽 버튼 드래그 중으로 표시
-                this._isMouseDragging.right = true;
-                // 드래그 거리 저장
-                this._draggedSize.right = new Size(e.clientX - this._mouseStart.right.x, e.clientY - this._mouseStart.right.y);
-            }
             this._mousemove(e);  // 커스텀 mousemove 핸들러 호출
         });
 
         // 마우스 버튼이 떼어졌을 때 이벤트 처리
         this._element.addEventListener('mouseup', (e) => {
-            // 마우스 시작 지점 초기화
-            // switch문을 사용한 이유는 개별적으로 업데이트 해서 적용하기 위함임
-            switch (e.button) {
-                case 0:
-                    this._mouseStart.left = { x: -1, y: -1 };  // 마우스 왼쪽 버튼이 떼어졌으면
-                    break;
-                case 1:
-                    this._mouseStart.wheel = { x: -1, y: -1 };  // 마우스 휠 버튼이 떼어졌으면
-                    break;
-                case 2:
-                    this._mouseStart.right = { x: -1, y: -1 };  // 마우스 오른쪽 버튼이 떼어졌으면
-                    break;
-            }
-            switch (e.button) {
-                case 0:
-                    this._mouseDown.left = false;  // 마우스 왼쪽 버튼이 떼어졌으면
-                    this._isMouseDragging.left = false;  // 마우스 왼쪽 버튼 드래그 상태 초기화
-                    break;
-                case 1:
-                    this._mouseDown.wheel = false;  // 마우스 휠 버튼이 떼어졌으면
-                    this._isMouseDragging.wheel = false;  // 마우스 휠 버튼 드래그 상태 초기화
-                    break;
-                case 2:
-                    this._mouseDown.right = false;  // 마우스 오른쪽 버튼이 떼어졌으면
-                    this._isMouseDragging.right = false;  // 마우스 오른쪽 버튼 드래그 상태 초기화
-                    break;
-            }
-            switch (e.button) {
-                case 0:
-                    this._isMouseDragging.left = false;  // 마우스 왼쪽 버튼 드래그 상태 초기화
-                    break;
-                case 1:
-                    this._isMouseDragging.wheel = false;  // 마우스 휠 버튼 드래그 상태 초기화
-                    break;
-                case 2:
-                    this._isMouseDragging.right = false;  // 마우스 오른쪽 버튼 드래그 상태 초기화
-                    break;
-            }
-            // 드래그 사이즈 초기화
-            switch (e.button) {
-                case 0:
-                    this._draggedSize.left = new Size(0, 0);  // 마우스 왼쪽 버튼 드래그 거리 초기화
-                    break;
-                case 1:
-                    this._draggedSize.wheel = new Size(0, 0);  // 마우스 휠 버튼 드래그 거리 초기화
-                    break;
-                case 2:
-                    this._draggedSize.right = new Size(0, 0);  // 마우스 오른쪽 버튼 드래그 거리 초기화
-                    break;
-            }
             // const dragEvent: DragMouseEvent = Object.assign(e, {
             //     draggedX: e.clientX - this._mouseStart.x,
             //     draggedY: e.clientY - this._mouseStart.y

@@ -40,6 +40,8 @@ button {
 }
 
 #rangeContainer {
+    scale: 0;
+
     position: fixed;
     top: 15vh;
 

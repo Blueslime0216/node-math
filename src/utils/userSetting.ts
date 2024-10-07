@@ -15,7 +15,7 @@ class UserSetting{
         horizontal: true, // 수평 자
     };
     gridCustom:ISetting = { // 그리드 모드
-        isOn: true,
+        isOn: false,
         lineWidthBoldStrong: 2, // 십자 모양 두께 배율
         lineLength: 50, // 선 길이 (1~100)
         dashLength: 20, // 점선(십자 모양) 길이 (1~100)

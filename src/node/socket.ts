@@ -24,7 +24,7 @@ export default class Socket{
     draw(viewport:Viewport, _bounds:Rect, nodeOffset:Point){
         const _ctx = viewport.ctx;
         const gridSpacing = viewport.gridSpacing;
-        const _x = nodeOffset.x + (_bounds.width * gridSpacing)/2 * (this._type === 'input' ? 1 : -1);
+        const _x = nodeOffset.x + (_bounds.width * gridSpacing)/2 * (this._type === 'input' ? -1 : 1);
         const _y = nodeOffset.y + gridSpacing/2*3;
         const _radius = gridSpacing / 6;
         // 소켓 그리기

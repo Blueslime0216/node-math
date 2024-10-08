@@ -111,6 +111,16 @@ window.addEventListener('mousemove', (e) => {
 
         viewport.render();
     }
+
+    // 호버 된 노드가 있으면 호버 상태 변경
+    viewport.nodes.forEach(node => {
+        // 캔버스 내의 마우스 위치를 계산하고 반올림해서 보내기
+        const canvasRect = canvas.getBoundingClientRect();
+        const offsetX = Math.round(e.clientX - canvasRect.left);
+        const offsetY = Math.round(e.clientY - canvasRect.top);
+        node.isHover = node.isInside({ x: offsetX, y: offsetY });
+        console.log(node.isHover);
+    });
 });
 window.addEventListener('mouseup', (e) => {
     // 마우스 시작 지점 초기화

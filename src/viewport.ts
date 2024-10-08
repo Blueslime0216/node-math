@@ -166,7 +166,7 @@ export class Viewport{
 
     drawNodes(){
         this._nodes.forEach(node => {
-            node.draw(this);
+            node.draw();
         });
     }
 

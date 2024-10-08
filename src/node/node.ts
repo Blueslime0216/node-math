@@ -1,5 +1,5 @@
 import Socket from "./socket.js";
-import {Viewport} from "../viewport.js";
+import viewport from "../viewport.js";
 
 export default class Node{
     id:string = Math.random().toString(36).substring(2, 18); // 노드 아이디
@@ -31,7 +31,7 @@ export default class Node{
         };
         
         this.width = 3; // 노드의 너비 (그리드 단위)
-        this.height = 2 + Math.max(this.sockets.input.length, this.sockets.output.length); // 노드의 높이 (그리드 단위)
+        this.height = 2 + this.sockets.input.length + this.sockets.output.length; // 노드의 높이 (그리드 단위)
     }
 
     // bounds getter, setter
@@ -46,6 +46,13 @@ export default class Node{
     
     set width (value:number){this.bounds.width = value}
     set height (value:number){this.bounds.height = value}
+
+    nodeOffset(){
+        return {
+            x: this.bounds.x + viewport.offset.x,
+            y: this.bounds.y + viewport.offset.y,
+        }
+    }
 
     /**
      * 소켓을 생성합니다.
@@ -62,17 +69,14 @@ export default class Node{
         }
     }
 
-    draw(viewport:Viewport){
+    draw(){
         // 값 가져오기
         const ctx = viewport.ctx; // 캔버스 컨텍스트
         const gridSpacing = viewport.gridSpacing; // 그리드 간격
         const borderThickness = gridSpacing / 20; // 테두리 두께 계산
         const borderRadious = borderThickness * 2; // 테두리 둥글기 계산
         const {x, y} = this.bounds; // 노드의 위치 및 크기
-        const nodeOffset = {
-            x: x + viewport.offset.x,
-            y: y + viewport.offset.y,
-        }
+        const nodeOffset = this.nodeOffset(); // 노드의 뷰포트 이동 적용 위치
         const xMoved = nodeOffset.x; // 뷰포트 이동 적용
         const yMoved = nodeOffset.y; // 뷰포트 이동 적용
         const width = this.bounds.width * gridSpacing; // 너비 계산
@@ -108,12 +112,16 @@ export default class Node{
         
         // 소켓 그리기
         this.sockets.all.forEach(socket => {
-            socket.draw(viewport, this.bounds, nodeOffset);
+            socket.draw(this.bounds, nodeOffset, this.sockets.output.length);
         });
     }
 
     isInside(point:Point){
-        return point.x > this.x - this.width / 2 && point.x < this.x + this.width / 2 && point.y > this.y - this.height / 2 && point.y < this.y + this.height / 2;
+        const {x, y} = this.nodeOffset();
+        return  point.x > x - (this.width)*viewport.gridSpacing/2 &&
+                point.x < x + (this.width)*viewport.gridSpacing/2 &&
+                point.y > y - (1)*viewport.gridSpacing/2 &&
+                point.y < y + (1 + this.sockets.all.length)*viewport.gridSpacing;
     }
     isCollide(rect:Rect){
         return rect.x < this.x + this.width / 2 && rect.x + rect.width > this.x - this.width / 2 && rect.y < this.y + this.height / 2 && rect.y + rect.height > this.y - this.height / 2;

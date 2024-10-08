@@ -1,13 +1,30 @@
 import Socket from "./socket.js";
 import viewport from "../viewport.js";
+import { drawRoundPolygon } from "../utils/functions.js";
 
 export default class Node{
     id:string = Math.random().toString(36).substring(2, 18); // 노드 아이디
+    name:string = '더하기'; // 노드 이름
 
     bounds:Rect = {x:0, y:0, width:0, height:0}; // 노드의 바운더리
 
-    color:string = 'hsl(210, 70%, 50%)'; // 노드의 색상
-    bgColor:string = 'hsla(210, 70%, 50%)'; // 노드의 배경 색상
+    style:nodeStyle = { // 노드의 색상
+        default: {
+            fill: 'hsla(210, 70%, 50%, 50)', // 노드의 배경 색상
+            stroke: 'hsla(210, 15%, 100%, 100)', // 노드의 테두리 색상
+            lineThickness: 1, // 노드의 테두리 두께
+        },
+        hover: {
+            fill: 'hsla(210, 70%, 55%, 100)',
+            stroke: 'hsla(210, 15%, 100%, 100)',
+            lineThickness: 1,
+        },
+        selected: {
+            fill: 'hsla(210, 70%, 65%, 100)',
+            stroke: 'hsla(60, 100%, 50%, 100)',
+            lineThickness: 2,
+        },
+    }
     type:string = 'node'; // 노드의 타입
 
     isHover:boolean = false; // 마우스가 노드 위에 있는지 여부
@@ -73,8 +90,8 @@ export default class Node{
         // 값 가져오기
         const ctx = viewport.ctx; // 캔버스 컨텍스트
         const gridSpacing = viewport.gridSpacing; // 그리드 간격
-        const borderThickness = gridSpacing / 20; // 테두리 두께 계산
-        const borderRadious = borderThickness * 2; // 테두리 둥글기 계산
+        const thicknessUnit = gridSpacing / 20; // 테두리 두께 계산
+        const borderRadious = thicknessUnit * 2; // 테두리 둥글기 계산
         const {x, y} = this.bounds; // 노드의 위치 및 크기
         const nodeOffset = this.nodeOffset(); // 노드의 뷰포트 이동 적용 위치
         const xMoved = nodeOffset.x; // 뷰포트 이동 적용
@@ -83,32 +100,57 @@ export default class Node{
         const height = this.bounds.height * gridSpacing; // 높이 계산
 
         // 스타일 설정
-        ctx.lineWidth = borderThickness; // 테두리 두께 설정
-        ctx.strokeStyle = 'hsl(210, 15%, 100%)'; // 테두리 색상 설정
-        // ctx.strokeStyle = this.isSelected ? 'yellow' : 'hsl(210, 15%, 100%)';
-        // if (selectedNodes.includes(this)) { // 노드가 선택된 상태라면
-        //     ctx.fillStyle = 'hsl(210, 70%, 65%)';
-        //     ctx.strokeStyle = 'yellow';
-        //     ctx.lineWidth = borderThickness * 2;
+        if (this.isSelected) { // 노드가 선택된 상태라면
+            ctx.fillStyle = this.style.selected.fill;
+            ctx.strokeStyle = this.style.selected.stroke;
+            ctx.lineWidth = thicknessUnit * this.style.selected.lineThickness;
         // } else if (hoveredSocket.ParentNode === this) { // 소켓이 호버 중인 상태라면
         //     ctx.fillStyle = 'hsl(210, 70%, 50%)'; // 기본 상태의 색상
-        // } else if (this.color === 'hover') { // 호버 상태라면
-        //     ctx.fillStyle = 'hsl(210, 70%, 55%)';
-        // } else { // 기본 상태이면
-        //     ctx.fillStyle = 'hsl(210, 70%, 50%)';
-        // }
-        ctx.fillStyle = this.bgColor;
+        } else if (this.isHover) { // 호버 상태라면
+            ctx.fillStyle = this.style.hover.fill;
+            ctx.strokeStyle = this.style.hover.stroke;
+            ctx.lineWidth = thicknessUnit * this.style.hover.lineThickness;
+        } else { // 기본 상태이면
+            ctx.fillStyle = this.style.default.fill;
+            ctx.strokeStyle = this.style.default.stroke;
+            ctx.lineWidth = thicknessUnit * this.style.default.lineThickness;
+        }
 
         // 노드 그리기
         ctx.beginPath(); // 그리기 시작
-        ctx.roundRect(xMoved - width/2, yMoved - gridSpacing/2, width, height, borderRadious); // 둥근 사각형 그리기
+        drawRoundPolygon(ctx, [
+            { x: xMoved - width/2, y: yMoved + gridSpacing/2 + gridSpacing/2 },
+            { x: xMoved - width/2 + gridSpacing, y: yMoved + gridSpacing/2 + gridSpacing/2 },
+            { x: xMoved - width/2 + gridSpacing/2*3, y: yMoved + gridSpacing/2 },
+            { x: xMoved + width/2, y: yMoved + gridSpacing/2 },
+            { x: xMoved + width/2, y: yMoved + height - gridSpacing/2 - gridSpacing/2 },
+            { x: xMoved + width/2 - gridSpacing/2, y: yMoved + height - gridSpacing/2 },
+            { x: xMoved - width/2, y: yMoved + height - gridSpacing/2 },
+        ], gridSpacing/10 )
         ctx.fill(); // 노드 내부 채우기
         ctx.stroke(); // 테두리 그리기
+        ctx.closePath(); // 그리기 끝
 
-        // 가로선을 그려서 헤더 분할
-        ctx.moveTo(xMoved - width/2, yMoved + gridSpacing/2); // 시작점 설정
-        ctx.lineTo(xMoved + width/2, yMoved + gridSpacing/2); // 끝점 설정
-        ctx.stroke(); // 가로선 그리기
+        // 헤더 그리기
+        ctx.beginPath();
+        drawRoundPolygon(ctx, [
+            { x: xMoved - width/2, y: yMoved - gridSpacing/2 },
+            { x: xMoved + width/2, y: yMoved - gridSpacing/2 },
+            { x: xMoved + width/2, y: yMoved + gridSpacing/2 },
+            { x: xMoved - width/2 + gridSpacing/2*3, y: yMoved + gridSpacing/2 },
+            { x: xMoved - width/2 + gridSpacing, y: yMoved + gridSpacing/2 + gridSpacing/2 },
+            { x: xMoved - width/2, y: yMoved + gridSpacing/2 + gridSpacing/2 },
+        ], gridSpacing/10 )
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath();
+
+        // 노드 이름 적기
+        ctx.fillStyle = 'hsl(0, 0%, 100%)'; // 글자 색상 설정
+        ctx.font = `${gridSpacing/2.5}px EliceDigitalBaeum_Regular`; // 글자 크기 및 글꼴 설정
+        ctx.textAlign = 'left'; // 텍스트 정렬 설정
+        ctx.textBaseline = 'middle'; // 텍스트 베이스라인 설정
+        ctx.fillText(this.name, xMoved - width/2 + gridSpacing/4, yMoved); // 텍스트 쓰기
         
         // 소켓 그리기
         this.sockets.all.forEach(socket => {
@@ -121,9 +163,12 @@ export default class Node{
         return  point.x > x - (this.width)*viewport.gridSpacing/2 &&
                 point.x < x + (this.width)*viewport.gridSpacing/2 &&
                 point.y > y - (1)*viewport.gridSpacing/2 &&
-                point.y < y + (1 + this.sockets.all.length)*viewport.gridSpacing;
+                point.y < y + (1 + this.sockets.all.length)*viewport.gridSpacing + (1)*viewport.gridSpacing/2; // 상단 헤더 위아래 여백 + 소켓 공간 + 하단 여백
     }
     isCollide(rect:Rect){
-        return rect.x < this.x + this.width / 2 && rect.x + rect.width > this.x - this.width / 2 && rect.y < this.y + this.height / 2 && rect.y + rect.height > this.y - this.height / 2;
+        // return rect.x < this.x + this.width / 2 &&
+        // rect.x + rect.width > this.x - this.width / 2 &&
+        // rect.y < this.y + this.height / 2 &&
+        // rect.y + rect.height > this.y - this.height / 2;
     }
 }

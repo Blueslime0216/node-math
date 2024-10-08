@@ -48,3 +48,13 @@ export function animate(){
     
     requestAnimationFrame(animate);
 }
+
+
+export function drawRoundPolygon(ctx:CanvasRenderingContext2D, arr:Array<Point>, radius:number) {
+    // @ts-expect-error NOTE: 이 타입스크립트는 왜 이 함수를 못 찾는 걸까
+    roundPolygon(arr, radius ).forEach((p, i) => {
+      !i && ctx.moveTo(p.in.x, p.in.y)
+      ctx.arcTo(p.x, p.y, p.out.x, p.out.y, p.arc.radius)
+      ctx.lineTo(p.next.in.x, p.next.in.y)
+  })
+}

@@ -69,3 +69,21 @@ interface viewportOffset{
     start:Point;
     moving:Point;
 }
+
+interface nodeStyle{
+    default:{
+        fill:string;
+        stroke:string;
+        lineThickness:number;
+    };
+    hover:{
+        fill:string;
+        stroke:string;
+        lineThickness:number;
+    };
+    selected:{
+        fill:string;
+        stroke:string;
+        lineThickness:number;
+    };
+}

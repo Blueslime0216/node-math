@@ -166,4 +166,5 @@ export class Viewport {
     }
 }
 const canvas = $_('editor'); // 캔버스 가져오기
-export default new Viewport(canvas); // 인스턴스를 export
+const viewport = new Viewport(canvas); // 인스턴스 생성
+export default viewport; // 인스턴스를 export

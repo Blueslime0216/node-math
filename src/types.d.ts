@@ -32,7 +32,6 @@ interface Size{
     height:number;
 }
 
-// (???) 이거 드래그 선택 할 때만 쓰는 것 같은데 더 좋은 작명 생각하자
 interface Rect{
     x:number;
     y:number;
@@ -40,7 +39,7 @@ interface Rect{
     height:number;
 }
 
-// type Polygon = Point[]
+type Polygon = Point[]
 
 // (???) 이거 쓰는 거임?
 interface DragMouseEvent extends MouseEvent {
@@ -71,19 +70,33 @@ interface viewportOffset{
 }
 
 interface nodeStyle{
+    colors: {
+        [key:string]:nodeColor
+    },
+    shape: {
+        [key:string]:nodeShape;
+    },
+}
+
+interface nodeColor{
     default:{
         fill:string;
         stroke:string;
         lineThickness:number;
-    };
+    },
     hover:{
         fill:string;
         stroke:string;
         lineThickness:number;
-    };
+    },
     selected:{
         fill:string;
         stroke:string;
         lineThickness:number;
-    };
+    },
 }
+interface nodeShape{
+    color:nodeColorSet,
+    polygon:Polygon;
+}
+type nodeColorSet = 'sky' | 'grey';

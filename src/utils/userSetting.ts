@@ -10,7 +10,7 @@ class UserSetting{
         isOn: true,
     };
     ruler:ISetting = { // 눈금 자 표시 여부
-        isOn:false,
+        isOn: true,
         vertical: true, // 수직 자
         horizontal: true, // 수평 자
     };

@@ -22,9 +22,10 @@ export class Viewport{
         this._offsetStart는 시작 시점(드래그를 시작할 때)의 좌표
         this._offsetMoving은 이동 중인 거리(드래그한 거리, 거리이므로 상대적인 값이다)
     */
-    private _offsetStart:Point = { x:816/2, y:624/2 }; // 시점을 움직이기 시작한 지점
-    private _offsetMoving:Size = { width:0, height:0 }; // 시점을 움직이는 중인 거리
+    private _offsetStart:Point = { x: 816/2, y: 624/2 }; // 시점을 움직이기 시작한 지점
+    private _offsetMoving:Size = { width: -1, height: -1 }; // 시점을 움직이는 중인 거리
     private _zoom:number = 1; // 시점 확대 정도
+    private _zoomAmount:number = 1; // 노드 위치 이동을 위한 시점 확대 정도
     private _zoomMax:number = 3; // 최대 확대 정도
     private _zoomMin:number = 0.25; // 최대 축소 정도
     private _nodes:Node[] = []; // 노드들
@@ -53,6 +54,8 @@ export class Viewport{
 
     get zoom(){return this._zoom}
     set zoom(value:number){this._zoom = value}
+    get zoomAmount(){return this._zoomAmount}
+    set zoomAmount(value:number){this._zoomAmount = value}
     get zoomMax(){return this._zoomMax}
     get zoomMin(){return this._zoomMin}
     get gridSpacing(){return this._zoom*this.gridSpacingDefault}

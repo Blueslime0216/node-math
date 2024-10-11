@@ -17,8 +17,9 @@ export class Viewport {
             this._offsetMoving은 이동 중인 거리(드래그한 거리, 거리이므로 상대적인 값이다)
         */
         this._offsetStart = { x: 816 / 2, y: 624 / 2 }; // 시점을 움직이기 시작한 지점
-        this._offsetMoving = { width: 0, height: 0 }; // 시점을 움직이는 중인 거리
+        this._offsetMoving = { width: -1, height: -1 }; // 시점을 움직이는 중인 거리
         this._zoom = 1; // 시점 확대 정도
+        this._zoomAmount = 1; // 노드 위치 이동을 위한 시점 확대 정도
         this._zoomMax = 3; // 최대 확대 정도
         this._zoomMin = 0.25; // 최대 축소 정도
         this._nodes = []; // 노드들
@@ -40,6 +41,8 @@ export class Viewport {
     set offsetMoving(value) { this._offsetMoving = value; }
     get zoom() { return this._zoom; }
     set zoom(value) { this._zoom = value; }
+    get zoomAmount() { return this._zoomAmount; }
+    set zoomAmount(value) { this._zoomAmount = value; }
     get zoomMax() { return this._zoomMax; }
     get zoomMin() { return this._zoomMin; }
     get gridSpacing() { return this._zoom * this.gridSpacingDefault; }

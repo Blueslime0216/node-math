@@ -78,20 +78,14 @@ window.addEventListener('mousedown', (e) => {
     }
 });
 controller.mousemove = (e) => {
-    // // 마우스 위치에 따라 노드 hover 상태 변경 (??? 코파일럿 추천 코드, 작동하나 나중에 확인하자)
-    // viewport.nodes.forEach(node => {
-    //     node.isHover = node.isInside({ x: e.offsetX, y: e.offsetY });
-    // });
+    let isNodeHovered = false;
     // 호버 된 노드가 있으면 호버 상태 변경
-    viewport.nodes.forEach(node => {
-        // // 캔버스 내의 마우스 위치를 계산하고 반올림해서 보내기 (window.addEventListener)
-        // const canvasRect = canvas.getBoundingClientRect();
-        // const offsetX = Math.round(e.clientX - canvasRect.left);
-        // const offsetY = Math.round(e.clientY - canvasRect.top);
-        // node.isHover = node.isInside({ x: offsetX, y: offsetY });
-        node.isHover = node.isInside({ x: e.offsetX, y: e.offsetY });
+    viewport.nodes.slice().reverse().forEach(node => { // 가장 위에 있는 노드를 찾기 위해 reverse를 넣음
+        node.isHover = !isNodeHovered ? node.isInside({ x: e.offsetX, y: e.offsetY }) : false;
+        if (node.isHover) {
+            isNodeHovered = true;
+        }
     });
-
     viewport.render();
 };
 window.addEventListener('mousemove', (e) => {
@@ -173,6 +167,9 @@ controller.wheel = (e) => {
     // 줌 조절하기
     const zoomFactor = 1.1; // 줌 인/아웃 시 사용할 배율
     const zoomAmount = e.deltaY > 0 ? 1 / zoomFactor : zoomFactor; // 줌 방향(in/out) 계산
+
+    // 모든 노드의 위치 조정 (너비와 높이는 gridSpacing에 의해 자동 조정됨)
+    viewport.zoomAmount *= zoomAmount;
     // 마우스 위치를 기준으로 줌이 조정되도록 시점 이동
     // 애니메이션 주기
     effectStateManager.mouseZoomSign = {
@@ -228,7 +225,7 @@ keyListener.keydown = (e) => {
 });
 // Add node button을 누른 경우 노드 추가
 (document.getElementById('addNodeBtn') as HTMLButtonElement).addEventListener('click', () => {
-    viewport.createNode({ x: 0, y: 0 }, 'test');
+    viewport.createNode({ x: canvas.width/2 - viewport.offset.x, y: canvas.height/2 - viewport.offset.y }, 'test');
     viewport.render();
 });
 

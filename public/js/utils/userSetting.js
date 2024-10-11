@@ -10,7 +10,7 @@ class UserSetting {
             isOn: true,
         };
         this.ruler = {
-            isOn: false,
+            isOn: true,
             vertical: true, // 수직 자
             horizontal: true, // 수평 자
         };

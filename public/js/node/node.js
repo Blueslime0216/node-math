@@ -7,7 +7,8 @@ export default class Node {
     constructor(startPos, type) {
         this.id = Math.random().toString(36).substring(2, 18); // 노드 아이디
         this.name = '더하기'; // 노드 이름
-        this.bounds = { x: 0, y: 0, width: 0, height: 0 }; // 노드의 바운더리
+        this.position = { x: 0, y: 0 }; // 노드의 위치
+        this.bounds = { width: 0, height: 0 }; // 노드의 바운더리
         this.style = {
             colors: {
                 sky: {
@@ -99,18 +100,18 @@ export default class Node {
         this.height = 2 + this.sockets.input.length + this.sockets.output.length; // 노드의 높이 (그리드 단위)
     }
     // bounds getter, setter
-    get x() { return this.bounds.x; }
-    get y() { return this.bounds.y; }
-    set x(value) { this.bounds.x = value; }
-    set y(value) { this.bounds.y = value; }
+    get x() { return this.position.x; }
+    get y() { return this.position.y; }
+    set x(value) { this.position.x = value; }
+    set y(value) { this.position.y = value; }
     get width() { return this.bounds.width; }
     get height() { return this.bounds.height; }
     set width(value) { this.bounds.width = value; }
     set height(value) { this.bounds.height = value; }
     nodeOffset() {
         return {
-            x: this.bounds.x + viewport.offset.x,
-            y: this.bounds.y + viewport.offset.y,
+            x: viewport.offset.x + this.position.x * viewport.zoomAmount,
+            y: viewport.offset.y + this.position.y * viewport.zoomAmount,
         };
     }
     /**
@@ -133,10 +134,9 @@ export default class Node {
         const gridSpacing = viewport.gridSpacing; // 그리드 간격
         const thicknessUnit = gridSpacing / 20; // 테두리 두께 계산
         const borderRadious = thicknessUnit * 2; // 테두리 둥글기 계산
-        const { x, y } = this.bounds; // 노드의 위치 및 크기
-        const nodeOffset = this.nodeOffset(); // 노드의 뷰포트 이동 적용 위치
-        const xMoved = nodeOffset.x; // 뷰포트 이동 적용
-        const yMoved = nodeOffset.y; // 뷰포트 이동 적용
+        const { x, y } = this.position; // 노드의 위치 및 크기
+        const xMoved = this.nodeOffset().x; // 뷰포트 이동 적용
+        const yMoved = this.nodeOffset().y; // 뷰포트 이동 적용
         const width = this.bounds.width * gridSpacing; // 너비 계산
         const height = this.bounds.height * gridSpacing; // 높이 계산
         // 노드 그리기
@@ -185,7 +185,7 @@ export default class Node {
         ctx.fillText(this.name, xMoved - width / 2 + gridSpacing / 4, yMoved); // 텍스트 쓰기
         // 소켓 그리기
         this.sockets.all.forEach(socket => {
-            socket.draw(this.bounds, nodeOffset, this.sockets.output.length);
+            socket.draw(this.position, this.bounds, this.nodeOffset(), this.sockets.output.length);
         });
     }
     // (!!!) 최적화 해야함, 근처에 마우스가 온 경우에만 체크하게 수정하자

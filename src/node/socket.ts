@@ -21,7 +21,7 @@ export default class Socket{
     get type(){return this._type}
     get connectedSocket(){return this._connectedSocket}
 
-    draw(_bounds:Rect, nodeOffset:Point, sockets_output_length:number){
+    draw(_position:Point, _bounds:Size, nodeOffset:Point, sockets_output_length:number){
         const _ctx = viewport.ctx;
         const gridSpacing = viewport.gridSpacing;
         const _x = nodeOffset.x + (_bounds.width * gridSpacing)/2 * (this._type === 'input' ? -1 : 1);

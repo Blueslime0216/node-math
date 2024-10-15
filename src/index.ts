@@ -7,6 +7,7 @@
 import { $_ } from "./utils/domUtils.js";
 import Controller from "./controller.js";
 import viewport from "./viewport.js";
+import { createNode } from "./viewportFunctions.js";
 import keyboardEventListener from "./keyboardEvent.js";
 import Node from "./node/node.js";
 import Socket from "./node/socket.js";
@@ -15,6 +16,7 @@ import { Point, Size } from "./utils/fieldUtils.js";
 import debugManager from "./utils/debugStateManager.js";
 import effectStateManager from "./utils/effectStateManager.js";
 import userSetting from "./utils/userSetting.js";
+import { render } from "./viewportFunctions.js";
 
 
 
@@ -25,15 +27,8 @@ const keyListener = new keyboardEventListener(); // 키보드 이벤트 리스�
 const canvas:HTMLCanvasElement = $_('editor') as HTMLCanvasElement; // 캔버스 가져오기
 const controller = new Controller(canvas); // 마우스 컨트롤러 생성
 
-// import로 viewport를 가져왔음
-
-// 뷰포트 리사이즈 이벤트
-window.onresize = viewport.resize;
-// 뷰포트 크기 조정
-viewport.resize();
-
 // 최초 렌더링
-viewport.render();
+render();
 
 canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault(); // 우클릭 메뉴 안 뜨게 하기
@@ -86,7 +81,7 @@ controller.mousemove = (e) => {
             isNodeHovered = true;
         }
     });
-    viewport.render();
+    render();
 };
 window.addEventListener('mousemove', (e) => {
     // 마우스가 눌려있으면 드래그 중으로 표시
@@ -168,8 +163,6 @@ controller.wheel = (e) => {
     const zoomFactor = 1.1; // 줌 인/아웃 시 사용할 배율
     const zoomAmount = e.deltaY > 0 ? 1 / zoomFactor : zoomFactor; // 줌 방향(in/out) 계산
 
-    // 모든 노드의 위치 조정 (너비와 높이는 gridSpacing에 의해 자동 조정됨)
-    viewport.zoomAmount *= zoomAmount;
     // 마우스 위치를 기준으로 줌이 조정되도록 시점 이동
     // 애니메이션 주기
     effectStateManager.mouseZoomSign = {
@@ -202,7 +195,7 @@ keyListener.keydown = (e) => {
         animateStart();
     }
 
-    viewport.render();
+    render();
 };
 
 
@@ -225,23 +218,26 @@ keyListener.keydown = (e) => {
 });
 // Add node button을 누른 경우 노드 추가
 (document.getElementById('addNodeBtn') as HTMLButtonElement).addEventListener('click', () => {
-    viewport.createNode({ x: canvas.width/2 - viewport.offset.x, y: canvas.height/2 - viewport.offset.y }, 'test');
-    viewport.render();
+    createNode({ 
+        x: (canvas.width / 2 - viewport.offset.x) / viewport.zoom,
+        y: (canvas.height / 2 - viewport.offset.y) / viewport.zoom
+    }, 'test');
+    render();
 });
 
 // range로 값 변경 디버깅
 (document.getElementById('range1') as HTMLButtonElement).addEventListener('input', () => {
     userSetting.gridCustom.lineWidthBoldStrong = Number((document.getElementById('range1') as HTMLInputElement).value);
 
-    viewport.render();
+    render();
 });
 (document.getElementById('range2') as HTMLButtonElement).addEventListener('input', () => {
     userSetting.gridCustom.lineLength = Number((document.getElementById('range2') as HTMLInputElement).value);
 
-    viewport.render();
+    render();
 });
 (document.getElementById('range3') as HTMLButtonElement).addEventListener('input', () => {
     userSetting.gridCustom.dashLength = Number((document.getElementById('range3') as HTMLInputElement).value);
 
-    viewport.render();
+    render();
 });

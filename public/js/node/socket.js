@@ -1,4 +1,4 @@
-import viewport from "../viewport.js";
+import viewport from "../sys/viewport.js";
 export default class Socket {
     constructor(node, index, type) {
         this._id = Math.random().toString(36).substring(2, 18); // 소켓 아이디

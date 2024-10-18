@@ -1,4 +1,4 @@
-export class Point implements Point {
+export class Point implements TPoint {
     x: number;
     y: number;
     constructor(x: number, y: number) {
@@ -7,7 +7,7 @@ export class Point implements Point {
     }
 }
 
-export class Size implements Size {
+export class Size implements TSize {
     width: number;
     height: number;
     constructor(width: number, height: number) {

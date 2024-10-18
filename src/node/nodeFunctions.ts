@@ -5,11 +5,9 @@
 // 직접적으로 작동하는 기능은 여기가 아니라 index.ts에서 작동한다
 // ====================================================================================================
 
-import { Point } from "../utils/fieldUtils.js";
-import Node from "./node.js";
-import Socket from "./socket.js";
 
-export function isInside(point: Point, polygon: Polygon): boolean {
+
+export function isInside(point: TPoint, polygon: Polygon): boolean {
     let inside = false;
 
     // 폴리곤의 모든 변을 순회하면서 교차점을 확인

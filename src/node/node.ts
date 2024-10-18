@@ -1,15 +1,15 @@
 import Socket from "./socket.js";
-import viewport from "../viewport.js";
-import { drawRoundPolygon } from "../utils/functions.js";
+import viewport from "../sys/viewport.js";
+import { drawRoundPolygon } from "../func/functions.js";
 import { isInside } from "./nodeFunctions.js";
-import debugManager from "../utils/debugStateManager.js";
+import debugManager from "../class/debugStateManager.js";
 
 export default class Node{
     id:string = Math.random().toString(36).substring(2, 18); // 노드 아이디
     name:string = '더하기'; // 노드 이름
 
-    position:Point = {x:0, y:0}; // 노드의 위치
-    bounds:Size = {width:0, height:0}; // 노드의 바운더리
+    position:TPoint = {x:0, y:0}; // 노드의 위치
+    bounds:TSize = {width:0, height:0}; // 노드의 바운더리
 
     style:nodeStyle = { // 노드의 색상
         colors : {
@@ -90,7 +90,7 @@ export default class Node{
         all: [] as Socket[], // 노드의 소켓들
     }; // 노드의 소켓들
 
-    constructor(startPos:Point, type:string){
+    constructor(startPos:TPoint, type:string){
         this.x = startPos.x; // 노드의 x좌표
         this.y = startPos.y; // 노드의 y좌표
         this.type = type; // 노드 타입
@@ -118,7 +118,7 @@ export default class Node{
     set width (value:number){this.bounds.width = value}
     set height (value:number){this.bounds.height = value}
 
-    nodeOffset():Point{
+    nodeOffset():TPoint{
         return {
             x: viewport.offset.x + this.position.x*viewport.zoomAmount,
             y: viewport.offset.y + this.position.y*viewport.zoomAmount,
@@ -206,7 +206,7 @@ export default class Node{
     }
 
     // (!!!) 최적화 해야함, 근처에 마우스가 온 경우에만 체크하게 수정하자
-    isInside(point:Point){
+    isInside(point:TPoint){
         const gridSpacing = viewport.gridSpacing; // 그리드 간격
         let test = false;
 
@@ -227,7 +227,7 @@ export default class Node{
         return test;
     }
     
-    isCollide(rect:Rect){
+    isCollide(rect:TRect){
         // return rect.x < this.x + this.width / 2 &&
         // rect.x + rect.width > this.x - this.width / 2 &&
         // rect.y < this.y + this.height / 2 &&

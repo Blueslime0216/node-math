@@ -1,8 +1,8 @@
 import Socket from "./socket.js";
-import viewport from "../viewport.js";
-import { drawRoundPolygon } from "../utils/functions.js";
+import viewport from "../sys/viewport.js";
+import { drawRoundPolygon } from "../func/functions.js";
 import { isInside } from "./nodeFunctions.js";
-import debugManager from "../utils/debugStateManager.js";
+import debugManager from "../class/debugStateManager.js";
 export default class Node {
     constructor(startPos, type) {
         this.id = Math.random().toString(36).substring(2, 18); // 노드 아이디

@@ -5,7 +5,6 @@
 
 import { Point, Size } from "../utils/fieldUtils.js";
 import controller from "./controller.js";
-import viewport from "./viewport.js"; // 여기에 있으면 안되는데 일단 둠
 
 
 export class Mouse {
@@ -19,6 +18,7 @@ export class Mouse {
     private _wheelDelta: IWheelDelta = { x: 0, y: 0 };
     // 마우스가 드래그 된 거리
     private _draggedSize: IMouseDraggedSize = { left: new Size(-1, -1), wheel: new Size(-1, -1), right: new Size(-1, -1) };
+    // private _draggedSizeAdjuseted: IMouseDraggedSize = { left: new Size(-1, -1), wheel: new Size(-1, -1), right: new Size(-1, -1) };
 
 
     // 마우스가 눌려있는지 여부 반환
@@ -43,38 +43,38 @@ export class Mouse {
     mousedown(e: MouseEvent) {
         // 마우스 클릭 시작 위치 저장
         switch (e.button) {
-            case 0:
-                $mouse.mouseStart.left = { x: e.clientX, y: e.clientY };  // 마우스 왼쪽 버튼이 눌렸으면
+            case 0: // 마우스 왼쪽 버튼이 눌렸으면
+                $mouse._mouseStart.left = { x: e.clientX, y: e.clientY };
                 break;
-            case 1:
-                $mouse.mouseStart.wheel = { x: e.clientX, y: e.clientY };  // 마우스 휠 버튼이 눌렸으면
+            case 1: // 마우스 휠 버튼이 눌렸으면
+                $mouse._mouseStart.wheel = { x: e.clientX, y: e.clientY };
                 break;
-            case 2:
-                $mouse.mouseStart.right = { x: e.clientX, y: e.clientY };  // 마우스 오른쪽 버튼이 눌렸으면
+            case 2: // 마우스 오른쪽 버튼이 눌렸으면
+                $mouse._mouseStart.right = { x: e.clientX, y: e.clientY };
                 break;
         }
         // 눌려진 마우스 버튼 표시
         switch (e.button) {
             case 0:
-                $mouse.isMouseDown.left = true;  // 마우스 왼쪽 버튼이 눌렸으면
+                $mouse._isMouseDown.left = true;  // 마우스 왼쪽 버튼이 눌렸으면
                 break;
             case 1:
-                $mouse.isMouseDown.wheel = true;  // 마우스 휠 버튼이 눌렸으면
+                $mouse._isMouseDown.wheel = true;  // 마우스 휠 버튼이 눌렸으면
                 break;
             case 2:
-                $mouse.isMouseDown.right = true;  // 마우스 오른쪽 버튼이 눌렸으면
+                $mouse._isMouseDown.right = true;  // 마우스 오른쪽 버튼이 눌렸으면
                 break;
         }
         // 마우스 클릭 상태 저장
         switch (e.button) {
             case 0:
-                $mouse.isMouseDragging.left = false;  // 마우스 왼쪽 버튼 드래그 상태 초기화
+                $mouse._isMouseDragging.left = false;  // 마우스 왼쪽 버튼 드래그 상태 초기화
                 break;
             case 1:
-                $mouse.isMouseDragging.wheel = false;  // 마우스 휠 버튼 드래그 상태 초기화
+                $mouse._isMouseDragging.wheel = false;  // 마우스 휠 버튼 드래그 상태 초기화
                 break;
             case 2:
-                $mouse.isMouseDragging.right = false;  // 마우스 오른쪽 버튼 드래그 상태 초기화
+                $mouse._isMouseDragging.right = false;  // 마우스 오른쪽 버튼 드래그 상태 초기화
                 break;
         }
 
@@ -85,23 +85,23 @@ export class Mouse {
     mousemove(e: MouseEvent) {
         // 마우스가 눌려있으면 드래그 중으로 표시
 
-        if ($mouse.isMouseDown.left) { // 마우스 왼쪽 버튼이 눌려있으면
+        if ($mouse._isMouseDown.left) { // 마우스 왼쪽 버튼이 눌려있으면
             // 왼쪽 버튼 드래그 중으로 표시
-            $mouse.isMouseDragging.left = true;
+            $mouse._isMouseDragging.left = true;
             // 드래그 거리 저장
-            $mouse.draggedSize.left = new Size(e.clientX - $mouse.mouseStart.left.x, e.clientY - $mouse.mouseStart.left.y);
+            $mouse._draggedSize.left = new Size(e.clientX - $mouse._mouseStart.left.x, e.clientY - $mouse._mouseStart.left.y);
         }
-        if ($mouse.isMouseDown.wheel) { // 마우스 휠 버튼이 눌려있으면
+        if ($mouse._isMouseDown.wheel) { // 마우스 휠 버튼이 눌려있으면
             // 휠 버튼 드래그 중으로 표시
-            $mouse.isMouseDragging.wheel = true;
+            $mouse._isMouseDragging.wheel = true;
             // 드래그 거리 저장
-            $mouse.draggedSize.wheel = new Size(e.clientX - $mouse.mouseStart.wheel.x, e.clientY - $mouse.mouseStart.wheel.y);
+            $mouse._draggedSize.wheel = new Size(e.clientX - $mouse._mouseStart.wheel.x, e.clientY - $mouse._mouseStart.wheel.y);
         }
-        if ($mouse.isMouseDown.right) { // 마우스 오른쪽 버튼이 눌려있으면
+        if ($mouse._isMouseDown.right) { // 마우스 오른쪽 버튼이 눌려있으면
             // 오른쪽 버튼 드래그 중으로 표시
-            $mouse.isMouseDragging.right = true;
+            $mouse._isMouseDragging.right = true;
             // 드래그 거리 저장
-            $mouse.draggedSize.right = new Size(e.clientX - $mouse.mouseStart.right.x, e.clientY - $mouse.mouseStart.right.y);
+            $mouse._draggedSize.right = new Size(e.clientX - $mouse._mouseStart.right.x, e.clientY - $mouse._mouseStart.right.y);
         }
 
         controller.mousemove(e); // 컨트롤러 실행
@@ -113,36 +113,36 @@ export class Mouse {
         // switch문을 사용한 이유는 개별적으로 업데이트 해서 적용하기 위함임
         switch (e.button) {
             case 0: // 마우스 왼쪽 버튼이 떼어졌으면
-                $mouse.mouseStart.left = { x: -1, y: -1 };  
+                $mouse._mouseStart.left = { x: -1, y: -1 };  
                 
-                $mouse.isMouseDown.left = false;  // 마우스 왼쪽 버튼이 떼어졌으면
-                $mouse.isMouseDragging.left = false;  // 마우스 왼쪽 버튼 드래그 상태 초기화
+                $mouse._isMouseDown.left = false;  // 마우스 왼쪽 버튼이 떼어졌으면
+                $mouse._isMouseDragging.left = false;  // 마우스 왼쪽 버튼 드래그 상태 초기화
                 
-                $mouse.isMouseDragging.left = false;  // 마우스 왼쪽 버튼 드래그 상태 초기화
+                $mouse._isMouseDragging.left = false;  // 마우스 왼쪽 버튼 드래그 상태 초기화
 
-                $mouse.draggedSize.left = new Size(0, 0);  // 마우스 왼쪽 버튼 드래그 거리 초기화
+                $mouse._draggedSize.left = new Size(0, 0);  // 마우스 왼쪽 버튼 드래그 거리 초기화
 
                 break;
             case 1: // 마우스 휠 버튼이 떼어졌으면
-                $mouse.mouseStart.wheel = { x: -1, y: -1 };
+                $mouse._mouseStart.wheel = { x: -1, y: -1 };
 
-                $mouse.isMouseDown.wheel = false;  // 마우스 휠 버튼이 떼어졌으면
-                $mouse.isMouseDragging.wheel = false;  // 마우스 휠 버튼 드래그 상태 초기화
+                $mouse._isMouseDown.wheel = false;  // 마우스 휠 버튼이 떼어졌으면
+                $mouse._isMouseDragging.wheel = false;  // 마우스 휠 버튼 드래그 상태 초기화
                 
-                $mouse.isMouseDragging.wheel = false;  // 마우스 휠 버튼 드래그 상태 초기화
+                $mouse._isMouseDragging.wheel = false;  // 마우스 휠 버튼 드래그 상태 초기화
 
-                $mouse.draggedSize.wheel = new Size(0, 0);  // 마우스 휠 버튼 드래그 거리 초기화
+                $mouse._draggedSize.wheel = new Size(0, 0);  // 마우스 휠 버튼 드래그 거리 초기화
 
                 break;
             case 2: // 마우스 오른쪽 버튼이 떼어졌으면
-                $mouse.mouseStart.right = { x: -1, y: -1 };
+                $mouse._mouseStart.right = { x: -1, y: -1 };
                 
-                $mouse.isMouseDown.right = false;  // 마우스 오른쪽 버튼이 떼어졌으면
-                $mouse.isMouseDragging.right = false;  // 마우스 오른쪽 버튼 드래그 상태 초기화
+                $mouse._isMouseDown.right = false;  // 마우스 오른쪽 버튼이 떼어졌으면
+                $mouse._isMouseDragging.right = false;  // 마우스 오른쪽 버튼 드래그 상태 초기화
                 
-                $mouse.isMouseDragging.right = false;  // 마우스 오른쪽 버튼 드래그 상태 초기화
+                $mouse._isMouseDragging.right = false;  // 마우스 오른쪽 버튼 드래그 상태 초기화
                 
-                $mouse.draggedSize.right = new Size(0, 0);  // 마우스 오른쪽 버튼 드래그 거리 초기화
+                $mouse._draggedSize.right = new Size(0, 0);  // 마우스 오른쪽 버튼 드래그 거리 초기화
 
                 break;
         }

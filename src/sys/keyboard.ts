@@ -22,8 +22,8 @@ export class keyboard {
     // 키보드 이벤트 리스너
     keydown(e: KeyboardEvent) {
         // keymap에 키 추가
-        this._keymap.push(e.code);
-        this._time.push(e.timeStamp);
+        if (this._keymap.indexOf(e.code) === -1) this._keymap.push(e.code);
+        if (this._time.indexOf(e.timeStamp) === -1)
         
         controller.keydown(e); // 컨트롤러 실행
     }

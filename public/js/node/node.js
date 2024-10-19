@@ -4,12 +4,31 @@ import { drawRoundPolygon } from "../func/functions.js";
 import { isInside } from "./nodeFunctions.js";
 import debugManager from "../class/debugStateManager.js";
 export default class Node {
+    // getter, setter
+    get id() { return this._id; }
+    get name() { return this._name; }
+    set name(value) { this._name = value; }
+    get position() {
+        return { x: this._dragStart.x + this._dragOffset.x,
+            y: this._dragStart.y + this._dragOffset.y };
+    }
+    set position(value) { this._dragStart = value; }
+    // set positionX(value:number){this._dragStart.x = value}
+    // set positionY(value:number){this._dragStart.y = value}
+    get dragStart() { return this._dragStart; }
+    set dragStart(value) { this._dragStart = value; }
+    get dragOffset() { return this._dragOffset; }
+    set dragOffset(value) { this._dragOffset = value; }
+    get bounds() { return this._bounds; }
+    set bounds(value) { this._bounds = value; }
+    get style() { return this._style; }
     constructor(startPos, type) {
-        this.id = Math.random().toString(36).substring(2, 18); // 노드 아이디
-        this.name = '더하기'; // 노드 이름
-        this.position = { x: 0, y: 0 }; // 노드의 위치
-        this.bounds = { width: 0, height: 0 }; // 노드의 바운더리
-        this.style = {
+        this._id = Math.random().toString(36).substring(2, 18); // 노드 아이디
+        this._name = '더하기'; // 노드 이름
+        this._dragStart = { x: 0, y: 0 }; // 드래그 시작 위치
+        this._dragOffset = { x: 0, y: 0 }; // 드래그 할 때 움직이는 거리
+        this._bounds = { width: 0, height: 0 }; // 노드의 바운더리
+        this._style = {
             colors: {
                 sky: {
                     default: {
@@ -23,8 +42,8 @@ export default class Node {
                         lineThickness: 1,
                     },
                     selected: {
-                        fill: 'hsla(210, 70%, 65%, 100%)',
-                        stroke: 'hsla(60, 100%, 50%, 100%)',
+                        fill: 'hsla(210, 70%, 50%, 100%)',
+                        stroke: 'hsla(60, 100%, 70%, 100%)',
                         lineThickness: 2,
                     },
                 },
@@ -40,8 +59,8 @@ export default class Node {
                         lineThickness: 1,
                     },
                     selected: {
-                        fill: 'hsla(210, 70%, 65%, 100%)',
-                        stroke: 'hsla(60, 100%, 50%, 100%)',
+                        fill: 'hsla(210, 70%, 50%, 60%)',
+                        stroke: 'hsla(60, 100%, 70%, 100%)',
                         lineThickness: 2,
                     },
                 },
@@ -87,8 +106,7 @@ export default class Node {
             output: [], // 노드의 출력 소켓들
             all: [], // 노드의 소켓들
         }; // 노드의 소켓들
-        this.x = startPos.x; // 노드의 x좌표
-        this.y = startPos.y; // 노드의 y좌표
+        this.position = startPos; // 노드의 x좌표
         this.type = type; // 노드 타입
         // 소켓 생성
         if (type === 'test') {

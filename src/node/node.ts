@@ -5,13 +5,31 @@ import { isInside } from "./nodeFunctions.js";
 import debugManager from "../class/debugStateManager.js";
 
 export default class Node{
-    id:string = Math.random().toString(36).substring(2, 18); // 노드 아이디
-    name:string = '더하기'; // 노드 이름
+    private _id:string = Math.random().toString(36).substring(2, 18); // 노드 아이디
+    private _name:string = '더하기'; // 노드 이름
 
-    position:TPoint = {x:0, y:0}; // 노드의 위치
-    bounds:TSize = {width:0, height:0}; // 노드의 바운더리
+    private _dragStart:TPoint = {x:0, y:0}; // 드래그 시작 위치
+    private _dragOffset:TPoint = {x:0, y:0}; // 드래그 할 때 움직이는 거리
+    private _bounds:TSize = {width:0, height:0}; // 노드의 바운더리
 
-    style:nodeStyle = { // 노드의 색상
+    // getter, setter
+    get id(){return this._id}
+    get name(){return this._name}
+    set name(value:string){this._name = value}
+
+    get position(){return { x: this._dragStart.x + this._dragOffset.x,
+                            y: this._dragStart.y + this._dragOffset.y}}
+    set position(value:TPoint){this._dragStart = value}
+    // set positionX(value:number){this._dragStart.x = value}
+    // set positionY(value:number){this._dragStart.y = value}
+    get dragStart(){return this._dragStart}
+    set dragStart(value:TPoint){this._dragStart = value}
+    get dragOffset(){return this._dragOffset}
+    set dragOffset(value:TPoint){this._dragOffset = value}
+    get bounds(){return this._bounds}
+    set bounds(value:TSize){this._bounds = value}
+
+    private _style:nodeStyle = { // 노드의 색상
         colors : {
             sky : {
                 default: {
@@ -25,8 +43,8 @@ export default class Node{
                     lineThickness: 1,
                 },
                 selected: {
-                    fill: 'hsla(210, 70%, 65%, 100%)',
-                    stroke: 'hsla(60, 100%, 50%, 100%)',
+                    fill: 'hsla(210, 70%, 50%, 100%)',
+                    stroke: 'hsla(60, 100%, 70%, 100%)',
                     lineThickness: 2,
                 },
             },
@@ -42,8 +60,8 @@ export default class Node{
                     lineThickness: 1,
                 },
                 selected: {
-                    fill: 'hsla(210, 70%, 65%, 100%)',
-                    stroke: 'hsla(60, 100%, 50%, 100%)',
+                    fill: 'hsla(210, 70%, 50%, 60%)',
+                    stroke: 'hsla(60, 100%, 70%, 100%)',
                     lineThickness: 2,
                 },
             },
@@ -78,6 +96,7 @@ export default class Node{
             ]},
         }
     };
+    get style(){return this._style}
 
     type:string = 'node'; // 노드의 타입
 
@@ -91,8 +110,7 @@ export default class Node{
     }; // 노드의 소켓들
 
     constructor(startPos:TPoint, type:string){
-        this.x = startPos.x; // 노드의 x좌표
-        this.y = startPos.y; // 노드의 y좌표
+        this.position = startPos; // 노드의 x좌표
         this.type = type; // 노드 타입
 
         // 소켓 생성
@@ -162,6 +180,7 @@ export default class Node{
                 ctx.fillStyle = this.style.colors[color].selected.fill;
                 ctx.strokeStyle = this.style.colors[color].selected.stroke;
                 ctx.lineWidth = thicknessUnit * this.style.colors[color].selected.lineThickness;
+
             // } else if (hoveredSocket.ParentNode === this) {
             //     // 소켓이 호버 중인 상태라면
             //     ctx.fillStyle = 'hsl(210, 70%, 50%)'; // 기본 상태의 색상

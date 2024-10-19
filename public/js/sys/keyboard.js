@@ -19,9 +19,10 @@ export class keyboard {
     // 키보드 이벤트 리스너
     keydown(e) {
         // keymap에 키 추가
-        this._keymap.push(e.code);
-        this._time.push(e.timeStamp);
-        controller.keydown(e); // 컨트롤러 실행
+        if (this._keymap.indexOf(e.code) === -1)
+            this._keymap.push(e.code);
+        if (this._time.indexOf(e.timeStamp) === -1)
+            controller.keydown(e); // 컨트롤러 실행
     }
     keyup(e) {
         // keymap에서 키 제거

@@ -7,10 +7,6 @@ import { $_ } from "../utils/domUtils.js";
 import { Point, Size } from "../utils/fieldUtils.js";
 import Node from "../node/node.js";
 import Socket from "../node/socket.js";
-import effectStateManager from "../class/effectStateManager.js";
-import { zoomEffect } from "../func/effectFunctions.js";
-import userSetting from "../class/userSetting.js";
-import { render } from "./viewportFunctions.js";
 
 
 export class Viewport{
@@ -24,11 +20,11 @@ export class Viewport{
         this._offsetMoving은 이동 중인 거리(드래그한 거리, 거리이므로 상대적인 값이다)
     */
     private _offsetStart:TPoint = { x: 816/2, y: 624/2 }; // 시점을 움직이기 시작한 지점
-    private _offsetMoving:Size = { width: -1, height: -1 }; // 시점을 움직이는 중인 거리
+    private _offsetMoving:TSize = { width: -1, height: -1 }; // 시점을 움직이는 중인 거리
     private _zoom:number = 1; // 시점 확대 정도
     zoomAmount:number = 1; // 노드 위치 이동을 위한 시점 확대 정도
     zoomMax:number = 3; // 최대 확대 정도
-    zoomMin:number = 0.25; // 최대 축소 정도
+    zoomMin:number = 0.1; // 최대 축소 정도
 
     // 상수들
     readonly lineThickness:number = 2; // 선 두께
@@ -36,7 +32,7 @@ export class Viewport{
 
     nodes:Node[] = []; // 노드들
     hoveredNode:Node|null = null; // 호버된 노드
-    selectedNodes:Node[] = []; // 선택된 노드들
+    selectedNodes:Set<Node> = new Set(); // 선택된 노드들
     hoveredSocket:Socket|null = null; // 호버된 소켓
     selectedSocket:Socket|null = null; // 선택된 소켓
 
@@ -54,7 +50,7 @@ export class Viewport{
     get offsetStart(){return this._offsetStart}
     set offsetStart(value:TPoint){this._offsetStart = value}
     get offsetMoving(){return this._offsetMoving}
-    set offsetMoving(value:Size){this._offsetMoving = value}
+    set offsetMoving(value:TSize){this._offsetMoving = value}
 
     get zoom(){return this._zoom}
     set zoom(value:number){this._zoom = value}

@@ -16,13 +16,13 @@ export class Viewport {
         this._zoom = 1; // 시점 확대 정도
         this.zoomAmount = 1; // 노드 위치 이동을 위한 시점 확대 정도
         this.zoomMax = 3; // 최대 확대 정도
-        this.zoomMin = 0.25; // 최대 축소 정도
+        this.zoomMin = 0.1; // 최대 축소 정도
         // 상수들
         this.lineThickness = 2; // 선 두께
         this.gridSpacingDefault = 50; // 그리드 기본 간격
         this.nodes = []; // 노드들
         this.hoveredNode = null; // 호버된 노드
-        this.selectedNodes = []; // 선택된 노드들
+        this.selectedNodes = new Set(); // 선택된 노드들
         this.hoveredSocket = null; // 호버된 소켓
         this.selectedSocket = null; // 선택된 소켓
         this._canvas = canvas;

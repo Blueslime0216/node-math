@@ -1,0 +1,62 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+@font-face {
+    font-family: 'EliceDigitalBaeum_Regular';
+    src: url('./lib/EliceDigitalBaeum_Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: hsl(0, 0%, 10%);
+    flex-direction: column;
+}
+
+#editor {
+    border: 0px solid hsl(0, 0%, 90%);
+}
+button {
+    margin-bottom: 10px;
+    padding: 10px;
+    font-size: 16px;
+}
+#btnContainer {
+    position: fixed;
+    top: 10vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1vh;
+}
+#editorSize {
+    width: calc(816px + 2px);
+    height: calc(624px + 2px);
+
+    border: 0px solid hsl(0, 0%, 90%);
+
+    overflow: hidden;
+    z-index: 1000;
+}
+
+#rangeContainer {
+    scale: 0;
+
+    position: fixed;
+    top: 15vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1vh;
+}
+#rangeContainer > label {
+    color: hsl(0, 0%, 90%);
+}

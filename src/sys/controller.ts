@@ -25,6 +25,7 @@ const canvas:HTMLCanvasElement = $_('editor') as HTMLCanvasElement; // 캔버스
 export class Controller {
     _isSnapToGrid: boolean = false; // 그리드에 맞추기 여부
     _isNodeDragging: boolean = false; // 노드 드래그 중인지 여부
+    _nodeDraggingCancel: boolean = false; // 노드 드래그 취소 여부
     _viewportOffsetMoved_whileDragging: Size = { width: 0, height: 0 }; // 노드를 드래그하는 동안 움직인 시점 이동 거리
 
     mousedown(e: MouseEvent) {
@@ -110,7 +111,20 @@ export class Controller {
                 node.isSelected = false;
             });
         }
-        // 노드 선택 스타일 적용하려고 렌더링
+
+        // [ 노드 드래그 취소 기능 ]
+        // 노드 드래그 중 [ 마우스 오른쪽 클릭 ] 노드 드래그 취소
+        if ($mouse.isMouseDown.right && this._isNodeDragging) {
+            viewport.selectedNodes.forEach(node => {
+                node.dragOffset = { x: 0, y: 0 };
+            });
+            this._isNodeDragging = false;
+            this._nodeDraggingCancel = true;
+            this._viewportOffsetMoved_whileDragging = { width: 0, height: 0 };
+        }
+
+
+        // 노드 선택 스타일 적용하려고 무조건 한번 렌더링
         render();
     }
 
@@ -134,7 +148,7 @@ export class Controller {
 
         // [ 노드 드래그 기능 ]
         // 마우스 왼쪽 클릭 중이고, 선택된 노드가 있으면
-        if ($mouse.isMouseDragging.left && viewport.selectedNodes.size > 0) {
+        if ($mouse.isMouseDragging.left && viewport.selectedNodes.size > 0 && !this._nodeDraggingCancel) {
             this._isNodeDragging = true;
 
             viewport.selectedNodes.forEach(node => {
@@ -187,6 +201,11 @@ export class Controller {
 
             this._isNodeDragging = false;
             this._viewportOffsetMoved_whileDragging = { width: 0, height: 0 };
+        }
+
+        // [ 노드 드래그 취소 기능 ]
+        if (this._nodeDraggingCancel && e.button === 0) {
+            this._nodeDraggingCancel = false;
         }
     }
 

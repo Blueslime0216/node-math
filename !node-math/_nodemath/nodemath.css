@@ -19,7 +19,7 @@ body {
     flex-direction: column;
 }
 
-canvas {
+#editor {
     border: 0px solid hsl(0, 0%, 90%);
 }
 button {
@@ -40,9 +40,10 @@ button {
     width: 816px;
     height: 624px;
 
-    border: 2px solid hsl(0, 0%, 90%);
+    border: 0px solid hsl(0, 0%, 90%);
 
     overflow: hidden;
+    z-index: 1000;
 }
 
 #rangeContainer {

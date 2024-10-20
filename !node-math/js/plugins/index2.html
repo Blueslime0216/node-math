@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>보로노이 이미지 효과</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .canvas-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #imageInput {
+            display: none;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        label.button {
+            background-color: #008CBA;
+        }
+        label.button:hover {
+            background-color: #007B9A;
+        }
+    </style>
+</head>
+<body>
+    <h1>보로노이 이미지 효과</h1>
+    <div class="canvas-container">
+        <canvas id="originalCanvas" width="816" height="612"></canvas>
+        <canvas id="voronoiDirectionCanvas" width="816" height="612"></canvas>
+        <canvas id="voronoiIntensityCanvas" width="816" height="612"></canvas>
+        <canvas id="finalCanvas" width="816" height="612"></canvas>
+    </div>
+    <div class="controls">
+        <label for="imageInput" class="button">이미지 선택</label>
+        <input type="file" id="imageInput" accept="image/*">
+        <button id="generateButton" class="button" disabled>보로노이 효과 생성</button>
+    </div>
+
+    <script>
+        // 캔버스 요소와 컨텍스트 가져오기
+        const [originalCanvas, voronoiDirectionCanvas, voronoiIntensityCanvas, finalCanvas] = 
+            [document.getElementById('originalCanvas'), document.getElementById('voronoiDirectionCanvas'), document.getElementById('voronoiIntensityCanvas'), document.getElementById('finalCanvas')];
+        const [originalCtx, voronoiDirectionCtx, voronoiIntensityCtx, finalCtx] = 
+            [originalCanvas.getContext('2d'), voronoiDirectionCanvas.getContext('2d'), voronoiIntensityCanvas.getContext('2d'), finalCanvas.getContext('2d')];
+
+        const imageInput = document.getElementById('imageInput');
+        const generateButton = document.getElementById('generateButton');
+        let originalImage = null;
+
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                originalImage = new Image();
+                originalImage.onload = function() {
+                    drawImageToCanvas(originalImage, originalCanvas);
+                    generateButton.disabled = false;
+                }
+                originalImage.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        function drawImageToCanvas(img, canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+            const x = (canvas.width - img.width * scale) / 2;
+            const y = (canvas.height - img.height * scale) / 2;
+            ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        }
+
+        generateButton.addEventListener('click', function() {
+            generateVoronoiImages();
+            renderFinalImage();
+        });
+
+        function generateVoronoiImages() {
+            const width = originalCanvas.width;
+            const height = originalCanvas.height;
+            const points = generateRandomPoints(width, height, 100);
+            const colors = Array.from({ length: points.length }, () => `hsl(${Math.floor(Math.random() * 360)}, 100%, 50%)`);
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const nearestPoint = findNearestPoint(x, y, points);
+                    const color = colors[points.indexOf(nearestPoint)];
+                    voronoiDirectionCtx.fillStyle = color;
+                    voronoiDirectionCtx.fillRect(x, y, 1, 1);
+
+                    const distance = Math.sqrt((x - nearestPoint.x) ** 2 + (y - nearestPoint.y) ** 2);
+                    const intensity = Math.min(distance / 100, 1);
+                    const grayValue = Math.floor(intensity * 255);
+                    voronoiIntensityCtx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+                    voronoiIntensityCtx.fillRect(x, y, 1, 1);
+                }
+            }
+        }
+
+        function generateRandomPoints(width, height, count) {
+            return Array.from({ length: count }, () => ({
+                x: Math.random() * width,
+                y: Math.random() * height
+            }));
+        }
+
+        function findNearestPoint(x, y, points) {
+            return points.reduce((nearestPoint, point) => {
+                const distance = (x - point.x) ** 2 + (y - point.y) ** 2;
+                return distance < (nearestPoint.distance || Infinity) ? { point, distance } : nearestPoint;
+            }, {}).point;
+        }
+
+        function renderFinalImage() {
+            const imageData = originalCtx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+            const finalImageData = finalCtx.createImageData(originalCanvas.width, originalCanvas.height);
+
+            for (let y = 0; y < originalCanvas.height; y++) {
+                for (let x = 0; x < originalCanvas.width; x++) {
+                    const color = renderPixelAt(x, y, imageData);
+                    const index = (y * originalCanvas.width + x) * 4;
+                    finalImageData.data.set([color.r, color.g, color.b, 255], index);
+                }
+            }
+            finalCtx.putImageData(finalImageData, 0, 0);
+        }
+
+        function renderPixelAt(x, y, imageData) {
+            const direction = getDirectionAt(x, y);
+            const intensity = getIntensityAt(x, y) * 10;
+
+            const newX = Math.floor(x + direction.x * intensity);
+            const newY = Math.floor(y + direction.y * intensity);
+
+            return getColorAt(newX, newY, imageData);
+        }
+
+        function getDirectionAt(x, y) {
+            const pixel = voronoiDirectionCtx.getImageData(x, y, 1, 1).data;
+            const angle = (pixel[0] / 255 * 360) * (2 * Math.PI / 360) - Math.PI;
+            return { x: Math.cos(angle), y: Math.sin(angle) };
+        }
+
+        function getIntensityAt(x, y) {
+            const pixel = voronoiIntensityCtx.getImageData(x, y, 1, 1).data;
+            return pixel[0] / 255;
+        }
+
+        function getColorAt(x, y, imageData) {
+            x = Math.max(0, Math.min(x, originalCanvas.width - 1));
+            y = Math.max(0, Math.min(y, originalCanvas.height - 1));
+            const index = (y * originalCanvas.width + x) * 4;
+            return { r: imageData.data[index], g: imageData.data[index + 1], b: imageData.data[index + 2] };
+        }
+    </script>
+</body>
+</html>

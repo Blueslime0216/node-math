@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>커스텀 깨짐 효과 애니메이션</title>
+  <style>
+    body {
+      background-color: #000;
+      color: #e5e5e5; /* 90% 밝기의 흰색 */
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    #container {
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+      width: 100vw;
+    }
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #upload-btn {
+      margin-bottom: 10px;
+    }
+    .canvas-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+    canvas {
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+    }
+    #controls {
+      margin-top: 10px;
+      width: 816px;
+    }
+    #controls > div {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 5px;
+    }
+    #controls button {
+      background-color: #333;
+      color: #e5e5e5;
+      border: none;
+      padding: 10px;
+      margin: 0 5px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #controls button:hover {
+      background-color: #444;
+    }
+    #timeline {
+      width: 100%;
+    }
+    #settings {
+      width: 250px;
+      background-color: #111;
+      padding: 20px;
+      box-sizing: border-box;
+      border-left: 1px solid #444;
+    }
+    #settings h2 {
+      margin-top: 0;
+    }
+    #settings label {
+      display: block;
+      margin: 15px 0 5px;
+    }
+    #settings input[type="number"],
+    #settings input[type="range"],
+    #settings input[type="text"] {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #444;
+      border-radius: 5px;
+      background-color: #222;
+      color: #e5e5e5;
+    }
+
+    /* Drop-down styling */
+    .dropdown {
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 5px;
+      padding: 5px;
+      margin-bottom: 10px;
+    }
+
+    /* Hide the hidden canvases */
+    .hidden {
+      display: none;
+    }
+
+  </style>
+  <script src="https://cdn.jsdelivr.net/gh/gorhill/Javascript-Voronoi/rhill-voronoi-core.js"></script>
+</head>
+<body>
+  <div id="container">
+    <div id="main">
+      <input type="file" id="upload-btn" accept="image/*">
+
+      <select id="imageSelect" class="dropdown" onchange="changeCanvas()">
+        <option value="display">Final Image</option>
+        <option value="image">Uploaded Image</option>
+        <option value="voronoi">Voronoi Image</option>
+        <option value="distribution">Distribution Image</option>
+      </select>
+
+      <div id="canvas-container">
+        <canvas id="display-canvas" width="816" height="624" class="hidden"></canvas>
+        <canvas id="image-canvas" width="816" height="624" class="hidden"></canvas>
+        <canvas id="voronoi-canvas" width="816" height="624"></canvas>
+        <canvas id="distribution-canvas" width="816" height="624" class="hidden"></canvas>
+      </div>
+      <div id="controls">
+        <div>
+          <button id="prev-frame">◀︎ 1프레임 후진</button>
+          <button id="play-pause">정지</button>
+          <button id="next-frame">1프레임 전진 ▶︎</button>
+        </div>
+        <div>
+          <input type="range" id="timeline" min="0" max="100" value="0">
+        </div>
+      </div>
+    </div>
+    <div id="settings">
+      <h2>설정</h2>
+      <label for="voronoi-seed">Voronoi Seed:</label>
+      <input type="text" id="voronoi-seed" value="12345">
+
+      <label for="point-count">점의 개수:</label>
+      <input type="number" id="point-count" value="50" min="1">
+
+      <label for="randomness">랜덤성:</label>
+      <input type="range" id="randomness" min="0" max="100" value="50">
+
+      <label for="shatter-speed">깨짐 속도:</label>
+      <input type="range" id="shatter-speed" min="1" max="10" value="5">
+
+      <label for="distribution-map">분포도 이미지 업로드:</label>
+      <input type="file" id="distribution-map" accept="image/*">
+    </div>
+  </div>
+
+  <script>
+    // 전역 변수들
+    const displayCanvas = document.getElementById('display-canvas');
+    const displayCtx = displayCanvas.getContext('2d');
+
+    const imageCanvas = document.getElementById('image-canvas');
+    const imageCtx = imageCanvas.getContext('2d');
+
+    const voronoiCanvas = document.getElementById('voronoi-canvas');
+    const voronoiCtx = voronoiCanvas.getContext('2d');
+
+    const distributionCanvas = document.getElementById('distribution-canvas');
+    const distributionCtx = distributionCanvas.getContext('2d');
+
+    const uploadBtn = document.getElementById('upload-btn');
+    const playPauseBtn = document.getElementById('play-pause');
+    const prevFrameBtn = document.getElementById('prev-frame');
+    const nextFrameBtn = document.getElementById('next-frame');
+    const timeline = document.getElementById('timeline');
+
+    const voronoiSeedInput = document.getElementById('voronoi-seed');
+    const pointCountInput = document.getElementById('point-count');
+    const randomnessInput = document.getElementById('randomness');
+    const shatterSpeedInput = document.getElementById('shatter-speed');
+    const distributionMapInput = document.getElementById('distribution-map');
+
+    let animationFrameId;
+    let isPlaying = true;
+    let currentFrame = 0;
+    const totalFrames = 100;
+
+    let voronoiDiagram;
+    let imageData;
+    let voronoiData;
+
+    function changeCanvas() {
+      const imageSelect = document.getElementById('imageSelect');
+      const value = imageSelect.value;
+      const canvases = document.querySelectorAll('canvas');
+      canvases.forEach(canvas => {
+        canvas.classList.add('hidden');
+      });
+      document.getElementById(`${value}-canvas`).classList.remove('hidden');
+    }
+
+    // 이미지 업로드 핸들러
+    uploadBtn.addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const img = new Image();
+      img.onload = function() {
+        // 이미지 비율 유지하면서 캔버스에 그리기
+        const canvasAspect = imageCanvas.width / imageCanvas.height;
+        const imgAspect = img.width / img.height;
+        let drawWidth, drawHeight, offsetX, offsetY;
+
+        if (imgAspect > canvasAspect) {
+          drawHeight = imageCanvas.height;
+          drawWidth = img.width * (drawHeight / img.height);
+          offsetX = -(drawWidth - imageCanvas.width) / 2;
+          offsetY = 0;
+        } else {
+          drawWidth = imageCanvas.width;
+          drawHeight = img.height * (drawWidth / img.width);
+          offsetX = 0;
+          offsetY = -(drawHeight - imageCanvas.height) / 2;
+        }
+
+        imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+        imageCtx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+
+        // 이미지 데이터 가져오기
+        imageData = imageCtx.getImageData(0, 0, imageCanvas.width, imageCanvas.height);
+
+        // Voronoi 다이어그램 생성
+        generateVoronoi();
+
+        // 애니메이션 시작
+        currentFrame = 0;
+        timeline.value = 0;
+        if (!animationFrameId) {
+          animate();
+        }
+      };
+      img.src = URL.createObjectURL(file);
+    });
+
+  
+    // Voronoi 다이어그램 생성 함수
+    function generateVoronoi2() {
+      const seed = voronoiSeedInput.value;
+      const pointCount = parseInt(pointCountInput.value);
+      const randomness = parseInt(randomnessInput.value) / 100;
+      const width = voronoiCanvas.width;
+      const height = voronoiCanvas.height;
+
+      // 시드 설정
+      Math.seedrandom(seed);
+
+      // 포인트 생성
+      let points = [];
+      for (let i = 0; i < pointCount; i++) {
+        let x = Math.random() * width;
+        let y = Math.random() * height;
+        points.push({ x, y });
+      }
+
+      // Distribution Map 적용
+      if (distributionImageData) {
+        // 분포도에 따라 포인트 재생성
+        points = [];
+        while (points.length < pointCount) {
+          let x = Math.random() * width;
+          let y = Math.random() * height;
+          const index = (Math.floor(y) * width + Math.floor(x)) * 4;
+          const value = distributionImageData.data[index]; // 흑백 이미지이므로 R값만 가져옴
+          if (Math.random() < value / 255) {
+            points.push({ x, y });
+          }
+        }
+      }
+
+      // Voronoi 다이어그램 그리기
+      voronoiCtx.clearRect(0, 0, width, height);
+      voronoiData = voronoiCtx.getImageData(0, 0, width, height);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let minDist = Infinity;
+          let closestPoint = null;
+          for (let point of points) {
+            const dx = x - point.x;
+            const dy = y - point.y;
+            const dist = dx * dx + dy * dy;
+            if (dist < minDist) {
+              minDist = dist;
+              closestPoint = point;
+            }
+          }
+          const angle = Math.atan2(closestPoint.y - y, closestPoint.x - x);
+          const normalizedAngle = (angle + Math.PI) / (2 * Math.PI);
+          const color = hsvToRgb(normalizedAngle, 1, 1);
+          const index = (y * width + x) * 4;
+          voronoiData.data[index] = color.r;
+          voronoiData.data[index + 1] = color.g;
+          voronoiData.data[index + 2] = color.b;
+          voronoiData.data[index + 3] = 255;
+        }
+      }
+      voronoiCtx.putImageData(voronoiData, 0, 0);
+    }
+
+    function generateVoronoi() {
+    const seed = voronoiSeedInput.value;
+    const pointCount = parseInt(pointCountInput.value);
+    const width = voronoiCanvas.width;
+    const height = voronoiCanvas.height;
+
+    console.log("Seed:", seed, "Point count:", pointCount);  // 시드와 포인트 수 확인
+
+    // 시드 설정
+    Math.seedrandom(seed);
+
+    // 포인트 생성
+    let points = [];
+    for (let i = 0; i < pointCount; i++) {
+      let x = Math.random() * width;
+      let y = Math.random() * height;
+      points.push({ x, y });
+    }
+
+    // Voronoi 다이어그램 생성
+    voronoiDiagram = new Voronoi();
+    const bbox = { xl: 0, xr: width, yt: 0, yb: height };
+    const sites = points.map(point => ({ x: point.x, y: point.y }));
+
+    const diagram = voronoiDiagram.compute(sites, bbox);
+
+    // Voronoi 다이어그램 그리기
+    voronoiCtx.clearRect(0, 0, width, height);
+    
+    diagram.cells.forEach(cell => {
+      const angle = Math.random() * 2 * Math.PI;
+      const normalX = Math.cos(angle);
+      const normalY = Math.sin(angle);
+
+      cell.normal = { x: normalX, y: normalY };
+
+      if (cell.halfedges.length > 0) {
+        voronoiCtx.fillStyle = `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})`;
+        voronoiCtx.beginPath();
+        const startPoint = cell.halfedges[0].getStartpoint();
+        voronoiCtx.moveTo(startPoint.x, startPoint.y);
+
+        cell.halfedges.forEach(edge => {
+          const endPoint = edge.getEndpoint();
+          voronoiCtx.lineTo(endPoint.x, endPoint.y);
+        });
+
+        voronoiCtx.closePath();
+        voronoiCtx.fill();
+      }
+    });
+
+    function generateGradientVoronoi() {
+    const seed = voronoiSeedInput.value;
+    const pointCount = parseInt(pointCountInput.value);
+    const width = voronoiCanvas.width;
+    const height = voronoiCanvas.height;
+
+    console.log("Seed:", seed, "Point count:", pointCount);  // 시드와 포인트 수 확인
+
+    // 시드 설정
+    Math.seedrandom(seed);
+
+    // 포인트 생성
+    let points = [];
+    for (let i = 0; i < pointCount; i++) {
+      let x = Math.random() * width;
+      let y = Math.random() * height;
+      points.push({ x, y });
+    }
+
+    // Voronoi 다이어그램 생성
+    voronoiDiagram = new Voronoi();
+    const bbox = { xl: 0, xr: width, yt: 0, yb: height };
+    const sites = points.map(point => ({ x: point.x, y: point.y }));
+
+    const diagram = voronoiDiagram.compute(sites, bbox);
+
+    // Voronoi 다이어그램 그리기
+    voronoiCtx.clearRect(0, 0, width, height);
+    
+    diagram.cells.forEach(cell => {
+      // 각 셀의 노멀 벡터를 설정 (랜덤 방향)
+      const angle = Math.random() * 2 * Math.PI;  // 0 ~ 2π 사이의 각도
+      const normalX = Math.cos(angle);
+      const normalY = Math.sin(angle);
+
+      // 셀의 경계 좌표를 찾기
+      const halfedges = cell.halfedges;
+      if (halfedges.length > 0) {
+        voronoiCtx.beginPath();
+        const startPoint = halfedges[0].getStartpoint();
+        voronoiCtx.moveTo(startPoint.x, startPoint.y);
+
+        halfedges.forEach(edge => {
+          const endPoint = edge.getEndpoint();
+          voronoiCtx.lineTo(endPoint.x, endPoint.y);
+        });
+
+        voronoiCtx.closePath();
+
+        // 그라데이션 시작점과 끝점 결정 (셀의 중심에서 특정 방향으로 그라데이션)
+        const cellCenter = { 
+          x: halfedges.reduce((sum, edge) => sum + edge.getStartpoint().x, 0) / halfedges.length, 
+          y: halfedges.reduce((sum, edge) => sum + edge.getStartpoint().y, 0) / halfedges.length
+        };
+        const gradEndX = cellCenter.x + normalX * 50;  // 노멀 벡터 방향으로 50px 이동
+        const gradEndY = cellCenter.y + normalY * 50;
+
+        // 그라데이션 생성 (흑 -> 백)
+        const gradient = voronoiCtx.createLinearGradient(cellCenter.x, cellCenter.y, gradEndX, gradEndY);
+        gradient.addColorStop(0, "black");  // 시작점은 검정색
+        gradient.addColorStop(1, "white");  // 끝점은 흰색
+
+        // 그라데이션을 셀에 적용
+        voronoiCtx.fillStyle = gradient;
+        voronoiCtx.fill();
+      } else {
+        console.error("Cell has no edges.");
+      }
+    });
+
+    // voronoiData 초기화
+    voronoiData = voronoiCtx.getImageData(0, 0, width, height);  // 보로노이 다이어그램 데이터를 캡처
+  }
+
+
+    // voronoiData 초기화
+    voronoiData = voronoiCtx.getImageData(0, 0, width, height);  // 보로노이 다이어그램 데이터를 캡처
+  }
+
+
+
+    // 애니메이션 함수
+    function animate() {
+      if (isPlaying) {
+        renderFrame(currentFrame);
+        currentFrame++;
+        if (currentFrame >= totalFrames) {
+          currentFrame = 0;
+        }
+        timeline.value = currentFrame;
+      }
+      animationFrameId = requestAnimationFrame(animate);
+    }
+
+    function renderFrame(frame) {
+    if (!imageData || !voronoiData) {
+      console.error("Missing imageData or voronoiData!");
+      return;
+    }
+
+    const width = displayCanvas.width;
+    const height = displayCanvas.height;
+    const outputData = displayCtx.createImageData(width, height);
+    const speed = parseInt(shatterSpeedInput.value);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const index = (y * width + x) * 4;
+        const angle = getAngleFromVoronoi(x, y);
+        const distance = frame * speed;
+
+        const srcX = Math.round(x - Math.cos(angle) * distance);
+        const srcY = Math.round(y - Math.sin(angle) * distance);
+
+        if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
+          const srcIndex = (srcY * width + srcX) * 4;
+          outputData.data[index] = imageData.data[srcIndex];
+          outputData.data[index + 1] = imageData.data[srcIndex + 1];
+          outputData.data[index + 2] = imageData.data[srcIndex + 2];
+          outputData.data[index + 3] = 255;
+        } else {
+          outputData.data[index + 3] = 0;  // 투명한 픽셀로 처리
+        }
+      }
+    }
+
+    displayCtx.putImageData(outputData, 0, 0);  // 최종 렌더링
+  }
+
+
+    // Voronoi에서 각도 가져오기
+    function getAngleFromVoronoi(x, y) {
+      const index = (y * voronoiCanvas.width + x) * 4;
+      const r = voronoiData.data[index];
+      const g = voronoiData.data[index + 1];
+      const b = voronoiData.data[index + 2];
+      const hsv = rgbToHsv(r, g, b);
+      const angle = hsv.h * 2 * Math.PI;
+      return angle;
+    }
+
+    // HSV to RGB 변환 함수
+    function hsvToRgb(h, s, v) {
+      let r, g, b;
+      let i = Math.floor(h * 6);
+      let f = h * 6 - i;
+      let p = v * (1 - s);
+      let q = v * (1 - f * s);
+      let t = v * (1 - (1 - f) * s);
+      switch (i % 6) {
+        case 0:
+          r = v; g = t; b = p;
+          break;
+        case 1:
+          r = q; g = v; b = p;
+          break;
+        case 2:
+          r = p; g = v; b = t;
+          break;
+        case 3:
+          r = p; g = q; b = v;
+          break;
+        case 4:
+          r = t; g = p; b = v;
+          break;
+        case 5:
+          r = v; g = p; b = q;
+          break;
+      }
+      return {
+        r: Math.floor(r * 255),
+        g: Math.floor(g * 255),
+        b: Math.floor(b * 255)
+      };
+    }
+
+    // RGB to HSV 변환 함수
+    function rgbToHsv(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      let max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h, s, v = max;
+      let d = max - min;
+      s = max === 0 ? 0 : d / max;
+      if (max === min) {
+        h = 0;
+      } else {
+        switch (max) {
+          case r:
+            h = (g - b) / d + (g < b ? 6 : 0);
+            break;
+          case g:
+            h = (b - r) / d + 2;
+            break;
+          case b:
+            h = (r - g) / d + 4;
+            break;
+        }
+        h /= 6;
+      }
+      return { h, s, v };
+    }
+
+    // 재생/정지 버튼 핸들러
+    playPauseBtn.addEventListener('click', function() {
+      isPlaying = !isPlaying;
+      playPauseBtn.textContent = isPlaying ? '정지' : '재생';
+    });
+
+    // 프레임 조작 버튼 핸들러
+    prevFrameBtn.addEventListener('click', function() {
+      currentFrame = (currentFrame - 1 + totalFrames) % totalFrames;
+      timeline.value = currentFrame;
+      renderFrame(currentFrame);
+    });
+
+    nextFrameBtn.addEventListener('click', function() {
+      currentFrame = (currentFrame + 1) % totalFrames;
+      timeline.value = currentFrame;
+      renderFrame(currentFrame);
+    });
+
+    // 타임라인 스크롤 핸들러
+    let isScrubbing = false;
+    timeline.addEventListener('mousedown', function() {
+      isScrubbing = true;
+      isPlaying = false;
+    });
+    timeline.addEventListener('mouseup', function() {
+      isScrubbing = false;
+      isPlaying = true;
+    });
+    timeline.addEventListener('input', function() {
+      currentFrame = parseInt(timeline.value);
+      renderFrame(currentFrame);
+    });
+
+    // 설정 변경 핸들러
+    voronoiSeedInput.addEventListener('change', generateVoronoi);
+    pointCountInput.addEventListener('change', generateVoronoi);
+    randomnessInput.addEventListener('change', generateVoronoi);
+
+    // 분포도 이미지 업로드 핸들러
+    let distributionImageData;
+    distributionMapInput.addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const img = new Image();
+      img.onload = function() {
+        distributionCtx.clearRect(0, 0, distributionCanvas.width, distributionCanvas.height);
+        distributionCtx.drawImage(img, 0, 0, distributionCanvas.width, distributionCanvas.height);
+        distributionImageData = distributionCtx.getImageData(0, 0, distributionCanvas.width, distributionCanvas.height);
+        generateVoronoi();
+      };
+      img.src = URL.createObjectURL(file);
+    });
+
+    // 시드 생성기
+    Math.seedrandom = function(seed) {
+      let x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    };
+  </script>
+</body>
+</html>

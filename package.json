@@ -1,8 +1,11 @@
 {
   "name": "math",
   "version": "1.0.0",
-  "main": "dist/index.js",
-  "scripts": {},
+  "main": "public/index.js",
+  "scripts": {
+    "build": "tsc",
+    "postbuild": "node copy-codes.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

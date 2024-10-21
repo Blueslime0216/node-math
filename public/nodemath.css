@@ -40,7 +40,7 @@ button {
     width: calc(816px + 2px);
     height: calc(624px + 2px);
 
-    border: 0px solid hsl(0, 0%, 90%);
+    border: 2px solid hsl(0, 0%, 90%);
 
     overflow: hidden;
     z-index: 1000;

@@ -7,9 +7,12 @@ import viewport,{ Viewport } from "../sys/viewport.js";
 import DebugStateManager from "../class/debugStateManager.js";
 import effectStateManager from "../class/effectStateManager.js";
 import { render } from "../sys/viewportFunctions.js";
+import state from "../class/state.js";
+import $mouse from "../sys/mouse.js";
+import { Size } from "utils/fieldUtils.js";
 
 
-export function zoomApply(viewport:Viewport, zoomAmount: number, x: number, y: number) {
+export function zoomApply(zoomAmount: number, x: number, y: number):boolean {
     // 만약 변경된 값이 최소/최대값을 벗어나면 최소/최대값으로 설정
     if (!(viewport.zoom*zoomAmount < viewport.zoomMin || viewport.zoom*zoomAmount > viewport.zoomMax)) {
         // 줌 적용
@@ -43,6 +46,7 @@ export function animate(){
     // 애니메이션이 필요 없다면 종료하기
     if (!effectStateManager.keyboardZoomCenterSign.isOn && // 키보드 중심 줌 이펙트
         !effectStateManager.mouseZoomSign.isOn && // 마우스 줌 이펙트
+        state.isDragSelecting === false && // 드래그 선택 중
         true) {
         isAnimateOn = false;
         return;

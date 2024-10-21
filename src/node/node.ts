@@ -4,6 +4,7 @@ import { drawRoundPolygon } from "../func/functions.js";
 import { isInside } from "./nodeFunctions.js";
 import debugManager from "../class/debugStateManager.js";
 
+
 export default class Node{
     private _id:string = Math.random().toString(36).substring(2, 18); // 노드 아이디
     private _name:string = '더하기'; // 노드 이름

@@ -2,10 +2,7 @@
   "name": "math",
   "version": "1.0.0",
   "main": "public/index.js",
-  "scripts": {
-    "build": "tsc",
-    "postbuild": "node copy-codes.js"
-  },
+  "scripts": {},
   "keywords": [],
   "author": "",
   "license": "ISC",

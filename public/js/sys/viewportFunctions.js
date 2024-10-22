@@ -25,7 +25,7 @@ export function render() {
     // 노드 그리기
     drawNodes();
     // 선택 영역 그리기
-    if (state.isDragSelecting) {
+    if (state.isDragSelecting && !state.isDragSelecting_cancel) {
         drawDragSelectBox();
     }
     // 이펙트 그리기
@@ -42,14 +42,14 @@ function drawDragSelectBox() {
     ctx.setLineDash([6, 4]);
     ctx.lineDashOffset = -((_a = (Date.now() / 1000).toString().split('.')[1]) === null || _a === void 0 ? void 0 : _a.slice(0, 1)) * 2 || 0;
     ctx.beginPath();
-    const noiseMove = (Math.random() < 0.1) ? (Math.random() * 10 - 5) * viewport.zoomAmount : 0;
+    const noiseMove = (Math.random() < 0) ? (Math.random() * 10 - 5) * viewport.zoomAmount : 0;
     const x = noiseMove + Math.min(($mouse.mouseStart.left.x + viewport.offsetMoving.width) - canvas.offsetLeft, $mouse.mousePos.x - canvas.offsetLeft);
     const y = noiseMove + Math.min(($mouse.mouseStart.left.y + viewport.offsetMoving.height) - canvas.offsetTop, $mouse.mousePos.y - canvas.offsetTop);
     const width = Math.abs(($mouse.mouseStart.left.x + viewport.offsetMoving.width) - $mouse.mousePos.x);
     const height = Math.abs(($mouse.mouseStart.left.y + viewport.offsetMoving.height) - $mouse.mousePos.y);
     const glitch = {
         on: Math.random() < 0.1, // 10% 확률로 지그재그 효과 추가
-        numPoints: Math.floor(50 * viewport.zoomAmount), // 10~10개의 지그재그 포인트
+        numPoints: Math.floor(0 * viewport.zoomAmount), // 10~10개의 지그재그 포인트
         leftYOffsets: [], // 왼쪽 변의 y 좌표 오프셋 배열
         rightYOffsets: [] // 오른쪽 변의 y 좌표 오프셋 배열
     };

@@ -80,16 +80,15 @@ interface IMouseDraggedSize{
 // ==================================================
 // 노드 스타일에 관한 타입들
 // ==================================================
-interface nodeStyle{
-    colors: {
-        [key:string]:nodeColor
-    },
-    shape: {
-        [key:string]:nodeShape;
-    },
+interface INodeStyle{
+    colors:INodeColor;
+    shapes:INodeShape;
 }
 
-interface nodeColor{
+interface INodeColor{
+    [key:string]:INodeColorChip
+}
+interface INodeColorChip{
     default:{
         fill:string;
         stroke:string;
@@ -105,9 +104,17 @@ interface nodeColor{
         stroke:string;
         lineThickness:number;
     },
+    dragSelected:{
+        fill:string;
+        stroke:string;
+        lineThickness:number;
+    },
 }
-interface nodeShape{
-    color:nodeColorSet,
+
+interface INodeShape{
+    [key:string]:INodeShapeChip;
+}
+interface INodeShapeChip{
+    color:'blue'|'sky',
     polygon:Polygon;
 }
-type nodeColorSet = 'sky' | 'grey';

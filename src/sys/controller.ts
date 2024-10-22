@@ -27,9 +27,24 @@ export class Controller {
     _viewportOffsetMoved_whileDragging: Size = { width: 0, height: 0 }; // 노드를 드래그하는 동안 움직인 시점 이동 거리
 
     mousedown(e: MouseEvent) {
+        // [ 노드 드래그 선택 취소 기능 ] 노드 드래그 선택 중 [ 마우스 오른쪽 클릭 ] : 노드 드래그 선택 취소
+        if ($mouse.isMouseDown.right && state.isDragSelecting) {
+            state.isDragSelecting = false;
+            state.isDragSelecting_cancel = true;
+            viewport.dragSelectedNodes.forEach(node => {
+                node.isDragSelected = false;
+            });
+            viewport.dragSelectedNodes.clear();
+            viewport.selectedNodes = new Set(viewport.temp_nodeBeforeDragSelect);
+            viewport.selectedNodes.forEach(node => {
+                node.isSelected = true;
+            });
+            console.log('노드 드래그 선택 취소');
+        }
+
         // [ 노드 선택 기능 ]
-        // [ 단일 선택 ] 마우스 왼 클릭 + 호버된 노드가 있고 + 선택된 노드가 아니면 + Alt 키 누르지 않았으면
-        if ($mouse.isMouseDown.left && viewport.hoveredNode && !viewport.hoveredNode.isSelected && !$keyboard.isKeyDown('AltLeft')) {
+        // [ 단일 선택 ] 마우스 왼 클릭 + 호버된 노드가 있고 + 선택된 노드가 아니면 + Alt 키 누르지 않았으면 + 노드 드래그 선택 취소가 된 상태가 아니면
+        if ($mouse.isMouseDown.left && viewport.hoveredNode && !viewport.hoveredNode.isSelected && !$keyboard.isKeyDown('AltLeft') && !state.isDragSelecting_cancel) {
             if (!($keyboard.isKeyDown('ShiftLeft'))) {
                 // 비우기
                 viewport.nodes.forEach(node => {
@@ -54,12 +69,11 @@ export class Controller {
                 node.dragOffset = { x: 0, y: 0 };
             });
             state.isNodeDragging = false;
-            state.nodeDraggingCancel = true;
+            state.nodeDragging_cancel = true;
             this._viewportOffsetMoved_whileDragging = { width: 0, height: 0 };
         }
 
 
-        // 노드 선택 스타일 적용하려고 무조건 한번 렌더링
         render();
     }
 
@@ -130,15 +144,18 @@ export class Controller {
         // [ 노드 드래그 선택 기능 ]
         // 빈 공간을 드래그하면 드래그 선택
         if ($mouse.isMouseDown.left && !viewport.hoveredNode) {
-            // shift를 누르지 않았으면 모든 노드 선택 해제
+            // temp로 복사해두기
+            viewport.temp_nodeBeforeDragSelect = new Set(viewport.selectedNodes);
+            state.isDragSelecting = true;
+
+            // 비우기
             if (!$keyboard.isKeyDown('ShiftLeft')) {
-                viewport.selectedNodes.clear();
-                viewport.nodes.forEach(node => {
+                viewport.selectedNodes.forEach(node => {
                     node.isSelected = false;
                 });
+                viewport.selectedNodes.clear();
             }
 
-            state.isDragSelecting = true;
             animateStart();
         }
     }
@@ -163,9 +180,15 @@ export class Controller {
             }
         });
 
+        // [ 드래그 선택 취소 기능 ]
+        if (state.isDragSelecting_cancel) {
+            return;
+        }
+        // (!!!) 이 아래는 드래그 선택을 취소할 때 우클릭을 때지 않고 마우스를 움직일 때 실행되지 않음
+
         // [ 노드 드래그 기능 ]
-        // 마우스 왼쪽 클릭 중이고, 선택된 노드가 있으면 + 노드 드래그 중단이 된 경우가 아니면 + 노드의 클릭이 확정된 경우 + 노드 드래그 선택 중이 아니면
-        if ($mouse.isMouseDragging.left && viewport.selectedNodes.size > 0 && !state.nodeDraggingCancel && !state.isDragSelecting) {
+        // 마우스 왼쪽 클릭 중이고, 선택된 노드가 있으면 + 노드 드래그 중단이 된 경우가 아니면 + 노드 드래그 선택 중이 아니면 + 노드 드래그 선택 취소가 된 상태가 아니면
+        if ($mouse.isMouseDragging.left && viewport.selectedNodes.size > 0 && !state.nodeDragging_cancel && !state.isDragSelecting && !state.isDragSelecting_cancel) {
             state.isNodeDragging = true;
 
             viewport.selectedNodes.forEach(node => {
@@ -188,12 +211,21 @@ export class Controller {
             });
         }
 
-        
         // [ 노드 드래그 선택 기능 ] 빈 공간을 드래그 하면 드래그 선택
         if (state.isDragSelecting) {
-            console.log('드래그 선택 중');
-            
-            render();
+            viewport.nodes.forEach(node => {
+                if (node.isCollide({x:  $mouse.mouseStart.left.x - canvas.offsetLeft,
+                                    y:  $mouse.mouseStart.left.y - canvas.offsetTop,
+                                    width:  $mouse.draggedSize.left.width,
+                                    height: $mouse.draggedSize.left.height
+                })) {
+                    node.isDragSelected = true;
+                    viewport.dragSelectedNodes.add(node);
+                } else {
+                    node.isDragSelected = false;
+                    viewport.dragSelectedNodes.delete(node);
+                }
+            });
         }
 
 
@@ -237,14 +269,36 @@ export class Controller {
         }
 
         // [ 노드 드래그 취소 기능 ]
-        if (state.nodeDraggingCancel && e.button === 0) {
-            state.nodeDraggingCancel = false;
+        if (state.nodeDragging_cancel && e.button === 0) {
+            state.nodeDragging_cancel = false;
         }
 
         
         // [ 노드 드래그 선택 기능 ]
+        if (e.button === 0) state.isDragSelecting_cancel = false; // 왼쪽 버튼이 떼지면 드래그 선택 취소 상태 해제
         if (state.isDragSelecting && e.button === 0) {
             state.isDragSelecting = false;
+
+            // Alt 눌림 여부에 따라서 slecetedNodes에 추가할지 말지 결정
+            if ($keyboard.isKeyDown('AltLeft')) {
+                viewport.dragSelectedNodes.forEach(node => {
+                    if (node.isSelected) {
+                        node.isSelected = false;
+                        viewport.selectedNodes.delete(node);
+                    }
+                });
+            } else {
+                viewport.dragSelectedNodes.forEach(node => {
+                    node.isSelected = true;
+                    viewport.selectedNodes.add(node);
+                });
+            }
+            viewport.dragSelectedNodes.forEach(node => {
+                node.isDragSelected = false;
+            });
+            viewport.dragSelectedNodes.clear();
+
+            render();
         }
     }
 
@@ -283,15 +337,6 @@ export class Controller {
 
 
     keydown(e: KeyboardEvent) {
-        // [ 노드 생성 기능 ]
-        // [ Shift + A ] 를 누르면 노드 생성
-        if ($keyboard.isKeyDown('ShiftLeft') && $keyboard.isKeyDown('KeyA') && (($keyboard.indexOf('Shift') < $keyboard.indexOf('KeyA')))) {
-            createNode({ 
-                x: (canvas.width / 2 - viewport.offset.x) / viewport.zoom,
-                y: (canvas.height / 2 - viewport.offset.y) / viewport.zoom
-            }, 'test');
-            render();
-        }
         // [ 전체 선택(해제) 기능 ]
         // [ A ] 모든 노드 선택
         if ($keyboard.isKeyDown('KeyA') && $keyboard.keymap.length === 1) { // A키만 눌리면
@@ -315,7 +360,6 @@ export class Controller {
 
             render();
         }
-
         
         // [ 화면 중심을 기준으로 확대하는 기능 ]
         if($keyboard.isKeyDown('NumpadAdd') || $keyboard.isKeyDown('NumpadSubtract')){
@@ -331,41 +375,6 @@ export class Controller {
 
 
             animateStart();
-        }
-
-        // [ 노드 삭제 기능 ]
-        if($keyboard.isKeyDown('KeyX') || $keyboard.isKeyDown('Delete')){
-            viewport.nodes = viewport.nodes.filter(node => {
-                if (node.isSelected) {
-                    return false;
-                } else {
-                    return true;
-                }
-            });
-            viewport.selectedNodes.clear();
-
-
-            render();
-        }
-
-        // [ 그리드에 맞추기 기능 ]
-        if($keyboard.isKeyDown('ControlLeft') && state.isNodeDragging){
-            this._isSnapToGrid = true;
-
-            viewport.selectedNodes.forEach(node => {
-                // 노드를 그리드에 맞추기
-                node.dragOffset.x = Math.round((node.dragOffset.x + node.dragStart.x)/(viewport.gridSpacing/viewport.zoom))*(viewport.gridSpacing/viewport.zoom)- node.dragStart.x;
-                node.dragOffset.y = Math.round((node.dragOffset.y + node.dragStart.y)/(viewport.gridSpacing/viewport.zoom))*(viewport.gridSpacing/viewport.zoom)- node.dragStart.y;
-            });
-        }
-        if(keydownInOrder(['ControlLeft', 'KeyG'])){
-            viewport.selectedNodes.forEach(node => {
-                // 노드를 그리드에 맞추기
-                node.position = {
-                    x: Math.round((node.position.x)/(viewport.gridSpacing/viewport.zoom))*(viewport.gridSpacing/viewport.zoom),
-                    y: Math.round((node.position.y)/(viewport.gridSpacing/viewport.zoom))*(viewport.gridSpacing/viewport.zoom),
-                }
-            });
         }
 
         // [ 노드 순서 변경 기능 ]
@@ -394,6 +403,68 @@ export class Controller {
             });
         };
 
+
+        render();
+    }
+
+
+
+    keypress(e: KeyboardEvent) {
+        // [ 노드 생성 기능 ]
+        // [ Shift + A ] 를 누르면 노드 생성
+        if (keydownInOrder(['ShiftLeft', 'KeyA']) && !$keyboard.isKeyHold('ShiftLeft')) {
+            createNode({ 
+                x: (canvas.width / 2 - viewport.offset.x) / viewport.zoom,
+                y: (canvas.height / 2 - viewport.offset.y) / viewport.zoom
+            }, 'test');
+            render();
+        }
+
+        // [ 노드 드래그 선택 기능 ] 이전에 선택되어 있던 노드들 처리 방법 Shift로 선택하기
+        if (state.isDragSelecting && $keyboard.isKeyDown('ShiftLeft')) { // Shift를 누르면
+            viewport.selectedNodes = new Set(viewport.temp_nodeBeforeDragSelect);
+            viewport.selectedNodes.forEach(node => {
+                node.isSelected = true;
+            });
+        }
+
+        // [ 노드 삭제 기능 ]
+        if($keyboard.isKeyDown('KeyX') || $keyboard.isKeyDown('Delete')){
+            viewport.nodes = viewport.nodes.filter(node => {
+                if (node.isSelected) {
+                    return false;
+                } else {
+                    return true;
+                }
+            });
+            viewport.selectedNodes.clear();
+
+
+            render();
+        }
+
+
+        // [ 그리드에 맞추기 기능 ]
+        if($keyboard.isKeyDown('ControlLeft') && state.isNodeDragging){
+            this._isSnapToGrid = true;
+
+            viewport.selectedNodes.forEach(node => {
+                // 노드를 그리드에 맞추기
+                node.dragOffset.x = Math.round((node.dragOffset.x + node.dragStart.x)/(viewport.gridSpacing/viewport.zoom))*(viewport.gridSpacing/viewport.zoom)- node.dragStart.x;
+                node.dragOffset.y = Math.round((node.dragOffset.y + node.dragStart.y)/(viewport.gridSpacing/viewport.zoom))*(viewport.gridSpacing/viewport.zoom)- node.dragStart.y;
+            });
+        }
+        if(keydownInOrder(['ControlLeft', 'KeyG'])){
+            viewport.selectedNodes.forEach(node => {
+                // 노드를 그리드에 맞추기
+                node.position = {
+                    x: Math.round((node.position.x)/(viewport.gridSpacing/viewport.zoom))*(viewport.gridSpacing/viewport.zoom),
+                    y: Math.round((node.position.y)/(viewport.gridSpacing/viewport.zoom))*(viewport.gridSpacing/viewport.zoom),
+                }
+            });
+        }
+
+
         // [ 단축키 목록 표시 ]
         if ($keyboard.isKeyDown('F1')) {
             const kr = (
@@ -420,7 +491,10 @@ export class Controller {
                 + '모든 노드 선택 : [ A ]<br>'
                 + '모든 노드 선택 취소 : [ Alt + A, 빈 공간 클릭 ]<br>'
                 + '다중 선택 : [ Shift + 좌클릭 ]<br>'
-                + '드래그 선택 : 빈 공간에 좌클릭 후 드래그<br>'
+                + '드래그 선택 : 빈 공간에 좌클릭 드래그<br>'
+                + '드래그 추가 선택 : [ Shift + 드래그 선택 ](중간에 Shift를 떼거나 눌려도 가능)<br>'
+                + '드래그 제거 선택 : [ Alt + 드래그 선택 ](드래그 중에 Alt 눌러도 가능)<br>'
+                + '드래그 취소 : 그래그 중 + [ 마우스 우클릭 ]<br>'
                 + '<i>- 기타</i><br>'
                 + '단축키 목록 표시 : [ F1 ]<br>'
                 + '<br>'
@@ -436,11 +510,18 @@ export class Controller {
                 title: '< Shortcuts >',
                 html: `<div style="text-align: left;">${kr}</div>`,
             });
-              
         }
+    };
 
-        render();
-    }
+
+
+    holdStart(e: KeyboardEvent) {
+    };
+
+
+
+    holding(e: KeyboardEvent) {
+    };
 
 
 
@@ -448,6 +529,14 @@ export class Controller {
         // [ 그리드에 맞추기 기능 ]
         if(e.code === 'ControlLeft'){
             this._isSnapToGrid = false;
+        }
+
+        // [ 노드 드래그 선택 기능 ] 이전에 선택되어 있던 노드들 처리 방법 Shift로 선택하기
+        if (state.isDragSelecting && e.code === 'ShiftLeft'){ // Shift가 떼지면
+            viewport.selectedNodes.forEach(node => {
+                node.isSelected = false;
+            });
+            viewport.selectedNodes.clear();
         }
     }
 }

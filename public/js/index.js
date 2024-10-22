@@ -22,10 +22,14 @@ window.addEventListener('mousedown', (e) => {
     $mouse.mousedown(e);
 });
 window.addEventListener('mousemove', (e) => {
-    if ($mouse.isMouseDragFirst.left || $mouse.isMouseDragFirst.wheel || $mouse.isMouseDragFirst.right) {
-        $mouse.mousedragstart(e);
+    // 실재로 좌표가 변했을 때만 mousemove 이벤트 실행
+    // 해당 버그 : https://stackoverflow.com/questions/14538743/what-to-do-if-mousemove-and-click-events-fire-simultaneously
+    if (e.movementX !== 0 || e.movementY !== 0) {
+        if ($mouse.isMouseDragFirst.left || $mouse.isMouseDragFirst.wheel || $mouse.isMouseDragFirst.right) {
+            $mouse.mousedragstart(e);
+        }
+        $mouse.mousemove(e);
     }
-    $mouse.mousemove(e);
 });
 window.addEventListener('mouseup', (e) => {
     // 마우스 버튼이 드래그 되지 않고 떨어지면 클릭 이벤트

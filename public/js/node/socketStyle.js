@@ -49,33 +49,15 @@ export class socketStyle {
         this.shapes = {
             header: {
                 color: 'blue',
-                polygon: [
-                    { x: -1.5, y: -0.5 },
-                    { x: 1.5, y: -0.5 },
-                    { x: 1.5, y: 0.5 },
-                    { x: -1.5, y: 0.5 },
-                ]
+                type: 'default',
             },
             connector: {
                 color: 'blue',
-                polygon: [
-                    { x: -1.5, y: 0.5 },
-                    { x: 0, y: 0.5 },
-                    { x: -0.5, y: 1 },
-                    { x: -1.5, y: 1 },
-                ]
+                type: 'default',
             },
             body: {
                 color: 'sky',
-                polygon: [
-                    { x: -1.5, y: 1 },
-                    { x: -0.5, y: 1 },
-                    { x: 0, y: 0.5 },
-                    { x: 1.5, y: 0.5 },
-                    { x: 1.5, y: 4 },
-                    { x: 1, y: 4.5 },
-                    { x: -1.5, y: 4.5 },
-                ]
+                type: 'default',
             },
         };
     }

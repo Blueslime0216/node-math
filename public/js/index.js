@@ -9,13 +9,28 @@ import $keyboard from "./sys/keyboard.js";
 import { render } from "./sys/viewportFunctions.js";
 const canvas = $_('editor'); // 캔버스 가져오기
 console.log(controller); // 컨트롤러 코드 실행(이거 안 하면 컨트롤러 생성을 안 하더라)
+// 키 방지 목록
+const preventList = [
+    ["ControlLeft", "KeyR"],
+    ["ControlLeft", "Minus"],
+    ["ControlLeft", "Equal"],
+    ["ControlLeft", "NumpadAdd"],
+    ["ControlLeft", "NumpadSubtract"],
+];
 // 최초 렌더링
 render();
 window.addEventListener('contextmenu', (e) => {
     e.preventDefault(); // 우클릭 메뉴 안 뜨게 하기
 });
 window.addEventListener('keydown', (e) => {
-    e.preventDefault(); // 모든 기본 키 입력 방지
+    console.log(e.code);
+    if (preventList.find(value => {
+        return value.every(v => $keyboard.keymap.find(k => k === v) || v === e.code);
+    })) {
+        e.preventDefault(); // 모든 기본 키 입력 방지
+        console.log('키 입력 방지');
+    }
+    ;
 });
 // 마우스 값 변경(그 후에 컨트롤러 실행)
 window.addEventListener('mousedown', (e) => {

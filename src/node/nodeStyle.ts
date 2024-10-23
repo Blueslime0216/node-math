@@ -1,5 +1,7 @@
-export class nodeStyle{ // 노드의 색상
-    colors = {
+import { Point } from "utils/fieldUtils";
+
+export class nodeStyle implements NodeStyle{ // 노드의 색상
+    colors:Record<StyleColor, nodeColorChip> = {
         blue : {
             default: {
                 fill: 'hsl(210, 70%, 50%, 100%)', // 노드의 배경 색상
@@ -45,7 +47,7 @@ export class nodeStyle{ // 노드의 색상
             },
         },
     };
-    shapes = { // 노드의 모양
+    shapes:Record<StyleShape, nodeShapeChip> = { // 노드의 모양
         header : {
             color: 'blue',
             polygon : [

@@ -113,10 +113,10 @@ export default class Node{
         
 
         // 노드 그리기
-        Object.keys(nodeStyle.shapes).forEach((key) => {
+        (Object.keys(nodeStyle.shapes) as StyleShape[]).forEach((key:StyleShape) => {
             const _key:StyleShape = key;
             console.log(nodeStyle.shapes[key].color);
-            const color = nodeStyle.shapes[key].color; // 색상 가져오기
+            const color:StyleColor = nodeStyle.shapes[key].color as StyleColor; // 색상 가져오기
             // 색상 설정
             if (this._isDragSelected) {
                 ctx.fillStyle = nodeStyle.colors[color].dragSelected.fill;
@@ -177,7 +177,7 @@ export default class Node{
         let test = false;
 
         // 노드 바운더리 안에 있는지 여부 반환
-        Object.keys(nodeStyle.shapes).forEach((key) => {
+        (Object.keys(nodeStyle.shapes) as StyleShape[]).forEach((key:StyleShape) => {
             const transformedPolygon = nodeStyle.shapes[key].polygon.map((point: { x: number, y: number }) => {
                 return {
                     x: this.nodeOffset().x + point.x * gridSpacing,

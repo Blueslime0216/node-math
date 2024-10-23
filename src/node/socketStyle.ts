@@ -1,5 +1,5 @@
 export class socketStyle{
-    colors:ISocketColor = {
+    colors:Record<StyleColor, socketColorChip> = {
         blue : {
             default: {
                 fill: 'hsl(210, 70%, 50%, 100%)', // 노드의 배경 색상
@@ -45,39 +45,21 @@ export class socketStyle{
             },
         },
     };
-    shapes:ISocketShape = { // 노드의 모양
+    shapes:Record<string, socketShapeChip> = { // 노드의 모양
         header : {
             color: 'blue',
-            polygon : [
-                { x: -1.5,  y: -0.5 },
-                { x: 1.5,   y: -0.5 },
-                { x: 1.5,   y: 0.5  },
-                { x: -1.5,  y: 0.5  },
-            ]
+            type : 'default',
         },
         connector : {
             color: 'blue',
-            polygon : [
-                { x: -1.5,  y: 0.5  },
-                { x: 0,     y: 0.5  },
-                { x: -0.5,  y: 1    },
-                { x: -1.5,  y: 1    },
-            ]
+            type : 'default',
         },
         body : {
             color: 'sky',
-            polygon : [
-                { x: -1.5,  y: 1    },
-                { x: -0.5,  y: 1    },
-                { x: 0,     y: 0.5  },
-                { x: 1.5,   y: 0.5  },
-                { x: 1.5,   y: 4    },
-                { x: 1,     y: 4.5  },
-                { x: -1.5,  y: 4.5  },
-            ]
+            type : 'default',
         },
     };
 }
 
-const imsi:ISocketStyle = new socketStyle(); // 인스턴스 생성
+const imsi = new socketStyle(); // 인스턴스 생성
 export default imsi; // 인스턴스를 export

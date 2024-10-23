@@ -1,7 +1,7 @@
 import Socket from "./socket.js";
 import viewport from "../sys/viewport.js";
 import { drawRoundPolygon } from "../func/functions.js";
-import { isInside } from "./nodeFunctions.js";
+import { isInsideNode } from "./nodeFunctions.js";
 import debugManager from "../class/debugStateManager.js";
 import nodeStyle from "./nodeStyle.js";
 export default class Node {
@@ -96,6 +96,8 @@ export default class Node {
         const height = this.bounds.height * gridSpacing; // 높이 계산
         // 노드 그리기
         Object.keys(nodeStyle.shapes).forEach((key) => {
+            const _key = key;
+            console.log(nodeStyle.shapes[key].color);
             const color = nodeStyle.shapes[key].color; // 색상 가져오기
             // 색상 설정
             if (this._isDragSelected) {
@@ -145,7 +147,7 @@ export default class Node {
         ctx.fillText(this.name, xMoved - width / 2 + gridSpacing / 4, yMoved); // 텍스트 쓰기
         // 소켓 그리기
         this.sockets.all.forEach(socket => {
-            socket.draw(this.position, this.bounds, this.nodeOffset(), this.sockets.output.length);
+            socket.draw();
         });
     }
     // (!!!) 최적화 해야함, 근처에 마우스가 온 경우에만 체크하게 수정하자
@@ -160,7 +162,7 @@ export default class Node {
                     y: this.nodeOffset().y + point.y * gridSpacing
                 };
             });
-            const result = isInside(point, transformedPolygon); // key는 디버깅을 위해 입력됨
+            const result = isInsideNode(point, transformedPolygon); // key는 디버깅을 위해 입력됨
             test = test || result;
             // (디버깅) 노드의 호버된 부분을 콘솔에 출력
             if (debugManager.log_hoveredShape.isOn && result)

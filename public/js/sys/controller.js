@@ -143,13 +143,38 @@ export class Controller {
             viewport.offsetMoving.height = $mouse.draggedSize.wheel.height;
         }
         // [ 노드 호버 효과 ]
-        viewport.hoveredNode = null; // 비우기
-        // 호버된 노드가 있는지 확인
+        // 비우기
+        viewport.hoveredNode = null;
         viewport.nodes.slice().reverse().forEach(node => {
-            node.isHover = (node.isInside({ x: e.offsetX, y: e.offsetY }) && !viewport.hoveredNode);
-            if (node.isHover) {
+            node.isHover = false;
+        });
+        // 호버된 노드 체크
+        viewport.nodes.slice().reverse().some((node) => {
+            // 소켓 호버 비우기
+            viewport.hoveredSocket = null;
+            node.sockets.all.forEach(socket => {
+                socket.isHover = false;
+            });
+            // 소켓 호버 체크
+            let isStop = false;
+            node.sockets.all.forEach(socket => {
+                if (socket.isInside({ x: e.offsetX, y: e.offsetY })) {
+                    socket.isHover = true;
+                    viewport.hoveredSocket = socket;
+                    console.log('소켓 호버');
+                    isStop = true;
+                }
+            });
+            if (isStop)
+                return true;
+            // 만약 노드가 호버되어 있으면
+            if (node.isInside({ x: e.offsetX, y: e.offsetY })) {
+                node.isHover = true;
                 viewport.hoveredNode = node;
+                console.log('노드 호버');
+                return true;
             }
+            return false;
         });
         // [ 드래그 선택 취소 기능 ]
         if (state.isDragSelecting_cancel) {

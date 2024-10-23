@@ -1,9 +1,4 @@
-// ====================================================================================================
-// 마우스/키보드 입력을 처리하는 컨트롤러 클래스
-// 여기서 마우스/키보드 입력에 대한 처리(변수 업데이트! 등)를 하고 이벤트 리스너를 할당하는 등의 작업을 한다
-// 직접적으로 작동하는 기능은 여기가 아니라 index.ts에서 작동한다
-// ====================================================================================================
-export function isInside(point, polygon) {
+export function isInsideNode(point, polygon) {
     let inside = false;
     // 폴리곤의 모든 변을 순회하면서 교차점을 확인
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -16,4 +11,7 @@ export function isInside(point, polygon) {
             inside = !inside;
     }
     return inside;
+}
+export function isInsideSocket(point, socket) {
+    return Math.sqrt(Math.pow(point.x - socket.x, 2) + Math.pow(point.y - socket.y, 2)) <= socket.radius;
 }

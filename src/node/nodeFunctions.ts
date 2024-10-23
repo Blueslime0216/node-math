@@ -4,10 +4,11 @@
 // 여기서 마우스/키보드 입력에 대한 처리(변수 업데이트! 등)를 하고 이벤트 리스너를 할당하는 등의 작업을 한다
 // 직접적으로 작동하는 기능은 여기가 아니라 index.ts에서 작동한다
 // ====================================================================================================
+import Socket from "./socket.js";
 
 
 
-export function isInside(point: TPoint, polygon: Polygon): boolean {
+export function isInsideNode(point: TPoint, polygon: Polygon): boolean {
     let inside = false;
 
     // 폴리곤의 모든 변을 순회하면서 교차점을 확인
@@ -24,4 +25,9 @@ export function isInside(point: TPoint, polygon: Polygon): boolean {
     }
 
     return inside;
+}
+
+
+export function isInsideSocket(point: TPoint, socket: Socket): boolean {
+    return Math.sqrt(Math.pow(point.x - socket.x, 2) + Math.pow(point.y - socket.y, 2)) <= socket.radius;
 }

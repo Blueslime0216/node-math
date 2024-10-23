@@ -1,7 +1,7 @@
 import Socket from "./socket.js";
 import viewport, { canvas } from "../sys/viewport.js";
 import { drawRoundPolygon } from "../func/functions.js";
-import { isInside } from "./nodeFunctions.js";
+import { isInsideNode } from "./nodeFunctions.js";
 import debugManager from "../class/debugStateManager.js";
 import nodeStyle from "./nodeStyle.js";
 
@@ -114,6 +114,8 @@ export default class Node{
 
         // 노드 그리기
         Object.keys(nodeStyle.shapes).forEach((key) => {
+            const _key:StyleShape = key;
+            console.log(nodeStyle.shapes[key].color);
             const color = nodeStyle.shapes[key].color; // 색상 가져오기
             // 색상 설정
             if (this._isDragSelected) {
@@ -165,7 +167,7 @@ export default class Node{
         
         // 소켓 그리기
         this.sockets.all.forEach(socket => {
-            socket.draw(this.position, this.bounds, this.nodeOffset(), this.sockets.output.length);
+            socket.draw();
         });
     }
 
@@ -182,7 +184,7 @@ export default class Node{
                     y: this.nodeOffset().y + point.y * gridSpacing
                 };
             });
-            const result = isInside(point, transformedPolygon); // key는 디버깅을 위해 입력됨
+            const result = isInsideNode(point, transformedPolygon); // key는 디버깅을 위해 입력됨
             test = test || result;
 
             // (디버깅) 노드의 호버된 부분을 콘솔에 출력

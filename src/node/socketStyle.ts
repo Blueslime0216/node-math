@@ -1,5 +1,5 @@
-export class nodeStyle{ // 노드의 색상
-    colors = {
+export class socketStyle{
+    colors:ISocketColor = {
         blue : {
             default: {
                 fill: 'hsl(210, 70%, 50%, 100%)', // 노드의 배경 색상
@@ -16,7 +16,7 @@ export class nodeStyle{ // 노드의 색상
                 stroke: 'hsl(120, 100%, 70%, 100%)',
                 lineThickness: 2,
             },
-            dragSelected: {
+            connected: {
                 fill: 'hsl(210, 70%, 50%, 100%)',
                 stroke: 'hsl(20, 100%, 50%, 100%)',
                 lineThickness: 2,
@@ -38,14 +38,14 @@ export class nodeStyle{ // 노드의 색상
                 stroke: 'hsl(120, 100%, 70%, 100%)',
                 lineThickness: 2,
             },
-            dragSelected: {
+            connected: {
                 fill: 'hsl(210, 70%, 50%, 60%)',
                 stroke: 'hsl(20, 100%, 50%, 100%)',
                 lineThickness: 2,
             },
         },
     };
-    shapes = { // 노드의 모양
+    shapes:ISocketShape = { // 노드의 모양
         header : {
             color: 'blue',
             polygon : [
@@ -79,5 +79,5 @@ export class nodeStyle{ // 노드의 색상
     };
 }
 
-const imsi = new nodeStyle(); // 인스턴스 생성
+const imsi:ISocketStyle = new socketStyle(); // 인스턴스 생성
 export default imsi; // 인스턴스를 export

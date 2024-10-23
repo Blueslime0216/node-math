@@ -80,41 +80,43 @@ interface IMouseDraggedSize{
 // ==================================================
 // 노드 스타일에 관한 타입들
 // ==================================================
-interface INodeStyle{
-    colors:INodeColor;
-    shapes:INodeShape;
-}
+// type StyleColor = 'blue' | 'sky';
+type StyleShape = 'header' | 'connector' | 'body';
+// type StyleType = 'default';
 
-interface INodeColor{
-    [key:string]:INodeColorChip
-}
-interface INodeColorChip{
-    default:{
-        fill:string;
-        stroke:string;
-        lineThickness:number;
-    },
-    hover:{
-        fill:string;
-        stroke:string;
-        lineThickness:number;
-    },
-    selected:{
-        fill:string;
-        stroke:string;
-        lineThickness:number;
-    },
-    dragSelected:{
-        fill:string;
-        stroke:string;
-        lineThickness:number;
-    },
-}
+// interface ColorState {
+//     fill: string;
+//     stroke: string;
+//     lineThickness: number;
+// }
 
-interface INodeShape{
-    [key:string]:INodeShapeChip;
-}
-interface INodeShapeChip{
-    color:'blue'|'sky',
-    polygon:Polygon;
-}
+// interface nodeColorChip {
+//     default: ColorState;
+//     hover: ColorState;
+//     selected: ColorState;
+//     dragSelected: ColorState;
+// }
+// interface socketColorChip {
+//     default: ColorState;
+//     hover: ColorState;
+//     selected: ColorState;
+//     connected: ColorState;
+// }
+
+// interface nodeShapeChip {
+//     color: StyleColor;
+//     polygon: Polygon;
+// }
+// interface socketShapeChip {
+//     color: StyleType;
+//     type: string;
+// }
+
+// interface NodeStyle {
+//     colors: Record<StyleColor, nodeColorChip>;
+//     shapes: Record<StyleShape, nodeShapeChip>;
+// }
+// interface SocketStyle {
+//     colors: Record<StyleColor, socketColorChip>;
+//     shapes: Record<string, ShapeChip>;
+// }

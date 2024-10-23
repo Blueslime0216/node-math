@@ -36,7 +36,7 @@ export class Viewport{
     dragSelectedNodes:Set<Node> = new Set(); // 드래그 선택영역 안에 있는 노드들
     temp_nodeBeforeDragSelect:Set<Node> = new Set(); // 드래그 선택 이전에 선택되어 있었다가 Shift로 삭제된 노드들
     hoveredSocket:Socket|null = null; // 호버된 소켓
-    selectedSocket:Socket|null = null; // 선택된 소켓
+    // selectedSocket:Socket|null = null; // 선택된 소켓
 
     constructor(canvas:HTMLCanvasElement){
         this._canvas = canvas

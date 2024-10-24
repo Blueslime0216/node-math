@@ -10,6 +10,7 @@ import { createNode } from "./viewportFunctions.js";
 import $mouse from "./mouse.js";
 import $keyboard from "./keyboard.js";
 import Node from "../node/node.js";
+import { addNodeStart } from "../node/addNode.js";
 import Socket from "../node/socket.js";
 import { zoomApply, animateStart } from "../func/functions.js";
 import debugManager from "../class/debugStateManager.js";
@@ -39,7 +40,6 @@ export class Controller {
             viewport.selectedNodes.forEach(node => {
                 node.isSelected = true;
             });
-            console.log('노드 드래그 선택 취소');
         }
 
         // [ 노드 선택 기능 ]
@@ -181,13 +181,13 @@ export class Controller {
             // 소켓 호버 비우기
             viewport.hoveredSocket = null;
             node.sockets.all.forEach(socket => {
-                socket.isHover = false;
+                socket.isHovered = false;
             });
             // 소켓 호버 체크
             let isStop = false;
             node.sockets.all.forEach(socket => {
                 if (socket.isInside({ x: e.offsetX, y: e.offsetY })) {
-                    socket.isHover = true;
+                    socket.isHovered = true;
                     viewport.hoveredSocket = socket;
                     // console.log('소켓 호버');
 
@@ -441,10 +441,14 @@ export class Controller {
         // [ 노드 생성 기능 ]
         // [ Shift + A ] 를 누르면 노드 생성
         if (keydownInOrder(['ShiftLeft', 'KeyA']) && !$keyboard.isKeyHold('ShiftLeft')) {
+            // addNodeStart();
+            const types:NodeType[] = ['operator','value'];
+            const index:number = $keyboard.isKeyDown('Numpad1') ? 1 : 0;
+            const nodeType = types[index]
             createNode({ 
                 x: (canvas.width / 2 - viewport.offset.x) / viewport.zoom,
                 y: (canvas.height / 2 - viewport.offset.y) / viewport.zoom
-            }, 'operator');
+            }, nodeType);
             render();
         }
 

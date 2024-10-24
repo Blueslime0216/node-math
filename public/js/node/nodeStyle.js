@@ -15,6 +15,39 @@ const baseColors = {
     stroke: { h: 210, s: 15, l: 100, a: 1 },
     lineThickness: 1,
 };
+// 기본 모양 정의
+const baseShapes = {
+    head: {
+        color: 'keyColor',
+        polygon: [
+            { x: -1.5, y: -0.5 },
+            { x: 1.5, y: -0.5 },
+            { x: 1.5, y: 0.5 },
+            { x: -1.5, y: 0.5 },
+        ]
+    },
+    connector: {
+        color: 'keyColor',
+        polygon: [
+            { x: -1.5, y: 0.5 },
+            { x: 0, y: 0.5 },
+            { x: -0.5, y: 1 },
+            { x: -1.5, y: 1 },
+        ]
+    },
+    body: {
+        color: 'bodyColor',
+        polygon: [
+            { x: -1.5, y: 1 },
+            { x: -0.5, y: 1 },
+            { x: 0, y: 0.5 },
+            { x: 1.5, y: 0.5 },
+            { x: 1.5, y: 4 },
+            { x: 1, y: 4.5 },
+            { x: -1.5, y: 4.5 },
+        ]
+    },
+};
 // 노드 상태에 따른 색상을 반환하는 함수
 function getStateColorSet(base, state) {
     switch (state) {
@@ -35,58 +68,17 @@ class NodeStyleManager {
             operator: {
                 color: {
                     keyColor: baseColors,
-                    bodyColor: Object.assign(Object.assign({}, baseColors), { fill: { h: 210, s: 50, l: 40, a: 1 } }),
+                    bodyColor: Object.assign(Object.assign({}, baseColors), { fill: { h: 210, s: 50, l: 40, a: 0.5 } }),
                 },
-                shape: {
-                    head: {
-                        color: 'keyColor',
-                        polygon: [
-                            { x: -1.5, y: -0.5 },
-                            { x: 1.5, y: -0.5 },
-                            { x: 1.5, y: 0.5 },
-                            { x: -1.5, y: 0.5 },
-                        ]
-                    },
-                    connector: {
-                        color: 'keyColor',
-                        polygon: [
-                            { x: -1.5, y: 0.5 },
-                            { x: 0, y: 0.5 },
-                            { x: -0.5, y: 1 },
-                            { x: -1.5, y: 1 },
-                        ]
-                    },
-                    body: {
-                        color: 'bodyColor',
-                        polygon: [
-                            { x: -1.5, y: 1 },
-                            { x: -0.5, y: 1 },
-                            { x: 0, y: 0.5 },
-                            { x: 1.5, y: 0.5 },
-                            { x: 1.5, y: 4 },
-                            { x: 1, y: 4.5 },
-                            { x: -1.5, y: 4.5 },
-                        ]
-                    },
-                }
+                shape: baseShapes,
             },
-            // value: {
-            //     color:{
-            //         keyColor: { ...baseColors, fill: { h: 120, s: 60, l: 50, a: 1 } },
-            //         bodyColor: { ...baseColors, fill: { h: 120, s: 40, l: 40, a: 1 } },
-            //     },
-            //     shape: {
-            //         head : {
-            //             color: 'keyColor',
-            //             polygon : [
-            //                 { x: -1.5,  y: -0.5 },
-            //                 { x: 1.5,   y: -0.5 },
-            //                 { x: 1.5,   y: 0.5  },
-            //                 { x: -1.5,  y: 0.5  },
-            //             ]
-            //         },
-            //     }
-            // },
+            value: {
+                color: {
+                    keyColor: Object.assign(Object.assign({}, baseColors), { fill: { h: 10, s: 60, l: 50, a: 1 } }),
+                    bodyColor: Object.assign(Object.assign({}, baseColors), { fill: { h: 10, s: 40, l: 40, a: 0.5 } }),
+                },
+                shape: baseShapes,
+            },
         };
     }
     // 상태에 맞는 스타일을 반환하는 메서드
@@ -101,8 +93,7 @@ class NodeStyleManager {
         };
     }
 }
-const nodeStyleManager = new NodeStyleManager();
-export default nodeStyleManager; // 인스턴스를 export
+export default new NodeStyleManager(); // 인스턴스를 export
 // export class nodeStyle2 implements NodeStyle{ // 노드의 색상
 //     colors:Record<StyleColor, nodeColorChip> = {
 //         blue : {

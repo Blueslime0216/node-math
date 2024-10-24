@@ -30,7 +30,6 @@ export class Controller {
             viewport.selectedNodes.forEach(node => {
                 node.isSelected = true;
             });
-            console.log('노드 드래그 선택 취소');
         }
         // [ 노드 선택 기능 ]
         // [ 단일 선택 ] 마우스 왼 클릭 + 호버된 노드가 있고 + 선택된 노드가 아니면 + Alt 키 누르지 않았으면 + 노드 드래그 선택 취소가 된 상태가 아니면
@@ -153,13 +152,13 @@ export class Controller {
             // 소켓 호버 비우기
             viewport.hoveredSocket = null;
             node.sockets.all.forEach(socket => {
-                socket.isHover = false;
+                socket.isHovered = false;
             });
             // 소켓 호버 체크
             let isStop = false;
             node.sockets.all.forEach(socket => {
                 if (socket.isInside({ x: e.offsetX, y: e.offsetY })) {
-                    socket.isHover = true;
+                    socket.isHovered = true;
                     viewport.hoveredSocket = socket;
                     // console.log('소켓 호버');
                     isStop = true;
@@ -371,10 +370,14 @@ export class Controller {
         // [ 노드 생성 기능 ]
         // [ Shift + A ] 를 누르면 노드 생성
         if (keydownInOrder(['ShiftLeft', 'KeyA']) && !$keyboard.isKeyHold('ShiftLeft')) {
+            // addNodeStart();
+            const types = ['operator', 'value'];
+            const index = $keyboard.isKeyDown('Numpad1') ? 1 : 0;
+            const nodeType = types[index];
             createNode({
                 x: (canvas.width / 2 - viewport.offset.x) / viewport.zoom,
                 y: (canvas.height / 2 - viewport.offset.y) / viewport.zoom
-            }, 'operator');
+            }, nodeType);
             render();
         }
         // [ 노드 드래그 선택 기능 ] 이전에 선택되어 있던 노드들 처리 방법 Shift로 선택하기

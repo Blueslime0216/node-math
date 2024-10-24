@@ -61,8 +61,6 @@ export class SocketStyleManager_old{
     };
 }
 
-// const imsi = new SocketStyleManager(); // 인스턴스 생성
-// export default imsi; // 인스턴스를 export
 
 
 
@@ -74,7 +72,7 @@ export function getHSL(color: HSLColor): string {
 // 색상을 좀 더 밝게 만드는 함수
 function lightenColor(color: HSLColor, percentage: number): HSLColor {
     // 밝기(Lightness)를 주어진 퍼센트만큼 증가시킴
-    const newLightness = Math.min(color.l + percentage, 100);  // 최대값은 100%
+    const newLightness = Math.min(Math.max(color.l + percentage, 0), 100);  // 최소값은 0, 최대값은 100%
     return { ...color, l: newLightness };
 }
 // 단일 기본 색상 정의
@@ -84,24 +82,29 @@ const baseColors: ColorSet = {
     lineThickness: 1,
 };
 // 노드 상태에 따른 색상을 반환하는 함수
-function getStateColorSet(base: ColorSet, state: NodeState): ColorSet {
+function getStateColorSet(base: ColorSet, state: SocketState): ColorSet {
     switch (state) {
         case 'hovered':
             return {
                 ...base,
                 fill: lightenColor(base.fill, 10),  // 밝기를 10% 밝게
             };
+        case 'parent_selected':
+            return {
+                ...base,
+                stroke: { h: 60, s: 100, l: 70, a: 1 },
+                lineThickness: 2
+            };
         case 'selected':
             return {
                 ...base,
-                stroke: { h: 60, s: 100, l: 70, a: 1 },  // 연노란색 테두리
+                stroke: { h: 60, s: 100, l: 70, a: 1 },
                 lineThickness: 2,
             };
-        case 'dragSelected':
+        case 'connected':
             return {
                 ...base,
-                stroke: { h: 20, s: 100, l: 50, a: 1 },  // 연빨간색 테두리
-                lineThickness: 2,
+                fill: lightenColor(base.fill, -20),  // 밝기를 -20% 밝게
             };
         default:
             return base;
@@ -110,35 +113,33 @@ function getStateColorSet(base: ColorSet, state: NodeState): ColorSet {
 
 
 class SocketStyleManager {
-    private socketTypeStyles: SocketStyle;
-
-    constructor() {
-        // 각 노드 타입별 기본 색상 설정
-        this.socketTypeStyles = {
-            color : {
-                blue : { 
-                    fill : { h: 210, s: 70, l: 50, a: 1 },
-                    stroke : { h: 210, s: 15, l: 100, a: 1 },
-                    lineThickness : 1,
-                },
+    private style: SocketStyle = {
+        color:{
+            blue:{ 
+                fill:{ h: 210, s: 70, l: 50, a: 1 },
+                stroke:{ h: 210, s: 15, l: 100, a: 1 },
+                lineThickness : 1,
+            },
+        },
+        shape:{
+            float:{
+                color:'blue',
+                shape:'circle',
+            },
+            int:{
+                color:'blue',
+                shape:'circle',
             }
-            shape : {
-                float: {
-                    color: 'blue',
-                    shape: 'circle',
-                },
-            }
-        };
+        }
+    };
 
     // 상태에 맞는 스타일을 반환하는 메서드
-    getNodeStyle(type: NodeType, state: NodeState): TypeStyle {
-        const baseStyle = this.nodeTypeStyles[type];
+    getStyle(type: SocketType, state: SocketState): SocketStyle_return {
         return {
-            color:{
-                keyColor: getStateColorSet(baseStyle.color.keyColor, state),
-                bodyColor: getStateColorSet(baseStyle.color.bodyColor, state),
-            },
-            shape: baseStyle.shape,
+            // 색상을 실재 ColorSet으로 변경해서 리턴
+            color: getStateColorSet(this.style.color[this.style.shape[type].color], state),
+            shape: this.style.shape,
         };
     }
-}
+};
+export default new SocketStyleManager(); // 인스턴스를 export

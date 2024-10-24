@@ -63,13 +63,15 @@ export default class Node{
         // 소켓 생성
         switch (type) {
             case 'operator':
-                this.createSockets(2, 'input');
-                this.createSockets(1, 'output');
+                this.createSockets('float', 'input', 2);
+                this.createSockets('float', 'output', 2);
+                break;
+            case 'value':
+                this.createSockets('float', 'output', 1);
                 break;
         }
         
         this.width = 3; // 노드의 너비 (그리드 단위)
-        console.log(this.sockets.input.length, this.sockets.output.length);
         this.height = 2 + this.sockets.input.length + this.sockets.output.length; // 노드의 높이 (그리드 단위)
     }
 
@@ -93,18 +95,14 @@ export default class Node{
         }
     }
 
-    /**
-     * 소켓을 생성합니다.
-     * @param index 소켓의 인덱스
-     * @param type 소켓의 타입
-     */
-    createSocket(index:number, type:TSocketType){
-        this.sockets[type].push(new Socket(this, index, type));
-        this.sockets.all.push(this.sockets[type][index]);
+    
+    createSocket(type:SocketType, direction:TSocketDirection, index:number){
+        this.sockets[direction].push(new Socket(this, type, direction, index));
+        this.sockets.all.push(this.sockets[direction][index]);
     }
-    createSockets(count:number, type:TSocketType){
+    createSockets(type:SocketType, direction:TSocketDirection, count:number){
         for (let i = 0; i < count; i++) {
-            this.createSocket(i, type);
+            this.createSocket(type, direction, i);
         }
     }
 

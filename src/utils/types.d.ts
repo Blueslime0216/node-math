@@ -33,7 +33,7 @@ interface IDebug{
 interface IEffect{
     isOn:boolean;
     // startTime?:number;
-    isInOut?:'in' | 'out';
+    isInOut?:'in'|'out';
     [key: string]: any;
 }
 
@@ -41,9 +41,6 @@ interface ISetting{
     isOn:boolean;
     [key: string]: any;
 }
-
-type TSocketType = 'input' | 'output';
-
 
 
 interface viewportOffset{
@@ -108,14 +105,16 @@ interface TypeStyle {
     shape: Record<NodeShape, ShapeSet>
 }
 
-type NodeColor = 'keyColor' | 'bodyColor';
-type NodeShape = 'head' | 'connector' | 'body';
-type NodeType = 'operator'// | 'value';
-type NodeState = 'default' | 'hovered' | 'selected' | 'dragSelected';
+type NodeColor = 'keyColor'|'bodyColor';
+type NodeShape = 'head'|'connector'|'body';
+type NodeType = 'operator'|'value';
+type NodeState = 'default'|'hovered'|'selected'|'dragSelected';
 
+type TSocketDirection = 'input'|'output';
 type SocketColor = 'blue';
-type SocketType = 'float'// | 'int';
-type SocketShape = 'circle' // | 'square' | 'diamond' | 'hexagon';
+type SocketType = 'float'|'int';
+type SocketShape = 'circle'|'square'|'diamond'|'hexagon';
+type SocketState = 'default'|'hovered'|'parent_selected'|'selected'|'connected';
 
 // 소켓 스타일 정의
 interface SocketStyle {
@@ -127,4 +126,11 @@ interface SocketStyle {
 interface SocketTypeStyle {
     color: SocketColor;
     shape: SocketShape;
+}
+
+
+// 리턴 용 인터페이스 (색상이 실재 값로 변경됨)
+interface SocketStyle_return {
+    color: ColorSet;
+    shape: Record<SocketType, SocketTypeStyle>;
 }

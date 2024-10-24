@@ -8,7 +8,6 @@ import DebugStateManager from "../class/debugStateManager.js";
 import effectStateManager from "../class/effectStateManager.js";
 import { render } from "../sys/viewportFunctions.js";
 import state from "../class/state.js";
-import $mouse from "../sys/mouse.js";
 import { Size } from "utils/fieldUtils.js";
 
 

@@ -62,8 +62,6 @@ export class SocketStyleManager_old {
         };
     }
 }
-// const imsi = new SocketStyleManager(); // 인스턴스 생성
-// export default imsi; // 인스턴스를 export
 // hsl 색상을 문자열로 변환
 export function getHSL(color) {
     const { h, s, l, a } = color;
@@ -72,7 +70,7 @@ export function getHSL(color) {
 // 색상을 좀 더 밝게 만드는 함수
 function lightenColor(color, percentage) {
     // 밝기(Lightness)를 주어진 퍼센트만큼 증가시킴
-    const newLightness = Math.min(color.l + percentage, 100); // 최대값은 100%
+    const newLightness = Math.min(Math.max(color.l + percentage, 0), 100); // 최소값은 0, 최대값은 100%
     return Object.assign(Object.assign({}, color), { l: newLightness });
 }
 // 단일 기본 색상 정의
@@ -86,18 +84,19 @@ function getStateColorSet(base, state) {
     switch (state) {
         case 'hovered':
             return Object.assign(Object.assign({}, base), { fill: lightenColor(base.fill, 10) });
+        case 'parent_selected':
+            return Object.assign(Object.assign({}, base), { stroke: { h: 60, s: 100, l: 70, a: 1 }, lineThickness: 2 });
         case 'selected':
             return Object.assign(Object.assign({}, base), { stroke: { h: 60, s: 100, l: 70, a: 1 }, lineThickness: 2 });
-        case 'dragSelected':
-            return Object.assign(Object.assign({}, base), { stroke: { h: 20, s: 100, l: 50, a: 1 }, lineThickness: 2 });
+        case 'connected':
+            return Object.assign(Object.assign({}, base), { fill: lightenColor(base.fill, -20) });
         default:
             return base;
     }
 }
 class SocketStyleManager {
     constructor() {
-        // 각 노드 타입별 기본 색상 설정
-        this.socketTypeStyles = {
+        this.style = {
             color: {
                 blue: {
                     fill: { h: 210, s: 70, l: 50, a: 1 },
@@ -110,20 +109,21 @@ class SocketStyleManager {
                     color: 'blue',
                     shape: 'circle',
                 },
+                int: {
+                    color: 'blue',
+                    shape: 'circle',
+                }
             }
         };
-        // 상태에 맞는 스타일을 반환하는 메서드
-        getNodeStyle(type, NodeType, state, NodeState);
-        TypeStyle;
-        {
-            const baseStyle = this.nodeTypeStyles[type];
-            return {
-                color: {
-                    keyColor: getStateColorSet(baseStyle.color.keyColor, state),
-                    bodyColor: getStateColorSet(baseStyle.color.bodyColor, state),
-                },
-                shape: baseStyle.shape,
-            };
-        }
+    }
+    // 상태에 맞는 스타일을 반환하는 메서드
+    getStyle(type, state) {
+        return {
+            // 색상을 실재 ColorSet으로 변경해서 리턴
+            color: getStateColorSet(this.style.color[this.style.shape[type].color], state),
+            shape: this.style.shape,
+        };
     }
 }
+;
+export default new SocketStyleManager(); // 인스턴스를 export

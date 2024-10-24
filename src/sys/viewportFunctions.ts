@@ -36,7 +36,7 @@ export function render(){
     // 선택 영역 그리기
     if (state.isDragSelecting && !state.isDragSelecting_cancel) {
         drawDragSelectBox();
-    }
+    };
 
     // 이펙트 그리기
     drawEffects();

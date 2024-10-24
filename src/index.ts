@@ -29,12 +29,10 @@ window.addEventListener('contextmenu', (e) => {
     e.preventDefault(); // 우클릭 메뉴 안 뜨게 하기
 });
 window.addEventListener('keydown', (e) => {
-    console.log(e.code);
     if(preventList.find(value => {
         return value.every(v => $keyboard.keymap.find(k => k === v) || v === e.code);
     })) {
         e.preventDefault(); // 모든 기본 키 입력 방지
-        console.log('키 입력 방지');
     };
 });
 

@@ -3,7 +3,7 @@ import viewport, { canvas } from "../sys/viewport.js";
 import { drawRoundPolygon } from "../func/functions.js";
 import { isInsideNode } from "./nodeFunctions.js";
 import debugManager from "../class/debugStateManager.js";
-import nodeStyle from "./nodeStyle.js";
+import nodeStyleManager,{ getHSL } from "./nodeStyle.js";
 
 
 
@@ -32,11 +32,17 @@ export default class Node{
     get bounds(){return this._bounds}
     set bounds(value:TSize){this._bounds = value}
 
-    type:string = 'node'; // 노드의 타입
+    type:NodeType = 'operator'; // 노드의 타입
 
     private _isHover:boolean = false; // 마우스가 노드 위에 있는지 여부
     private _isSelected:boolean = false; // 노드가 선택되었는지 여부
     private _isDragSelected:boolean = false; // 드래그 선택 영역 안에 있는지 여부
+    get state():NodeState{
+        if (this._isDragSelected) return 'dragSelected';
+        if (this._isSelected) return 'selected';
+        if (this._isHover) return 'hovered';
+        return 'default';
+    }
     get isHover(){return this._isHover}
     get isSelected(){return this._isSelected}
     get isDragSelected(){return this._isDragSelected}
@@ -50,17 +56,20 @@ export default class Node{
         all: [] as Socket[], // 노드의 소켓들
     }; // 노드의 소켓들
 
-    constructor(startPos:TPoint, type:string){
+    constructor(startPos:TPoint, type:NodeType){
         this.position = startPos; // 노드의 x좌표
         this.type = type; // 노드 타입
 
         // 소켓 생성
-        if (type === 'test'){
-            this.createSockets(2, 'input');
-            this.createSockets(1, 'output');
-        };
+        switch (type) {
+            case 'operator':
+                this.createSockets(2, 'input');
+                this.createSockets(1, 'output');
+                break;
+        }
         
         this.width = 3; // 노드의 너비 (그리드 단위)
+        console.log(this.sockets.input.length, this.sockets.output.length);
         this.height = 2 + this.sockets.input.length + this.sockets.output.length; // 노드의 높이 (그리드 단위)
     }
 
@@ -113,38 +122,17 @@ export default class Node{
         
 
         // 노드 그리기
-        (Object.keys(nodeStyle.shapes) as StyleShape[]).forEach((key:StyleShape) => {
-            const _key:StyleShape = key;
-            console.log(nodeStyle.shapes[key].color);
-            const color:StyleColor = nodeStyle.shapes[key].color as StyleColor; // 색상 가져오기
+        const nodeStyle:TypeStyle = nodeStyleManager.getNodeStyle(this.type, this.state); // 노드 스타일 가져오기
+        (Object.keys(nodeStyle.shape) as NodeShape[]).forEach((key:NodeShape) => {
+            const colorCode:NodeColor = (nodeStyle.shape[key].color) as NodeColor; // 색상 코드 가져오기
+            const color = nodeStyle.color[colorCode];
             // 색상 설정
-            if (this._isDragSelected) {
-                ctx.fillStyle = nodeStyle.colors[color].dragSelected.fill;
-                ctx.strokeStyle = nodeStyle.colors[color].dragSelected.stroke;
-                ctx.lineWidth = thicknessUnit * nodeStyle.colors[color].dragSelected.lineThickness;
-            } else if (this._isSelected) {
-                // 노드가 선택된 상태라면
-                ctx.fillStyle = nodeStyle.colors[color].selected.fill;
-                ctx.strokeStyle = nodeStyle.colors[color].selected.stroke;
-                ctx.lineWidth = thicknessUnit * nodeStyle.colors[color].selected.lineThickness;
-
-            // } else if (hoveredSocket.ParentNode === this) {
-            //     // 소켓이 호버 중인 상태라면
-            //     ctx.fillStyle = 'hsl(210, 70%, 50%)'; // 기본 상태의 색상
-            } else if (this._isHover) {
-                // 호버 상태라면
-                ctx.fillStyle = nodeStyle.colors[color].hover.fill;
-                ctx.strokeStyle = nodeStyle.colors[color].hover.stroke;
-                ctx.lineWidth = thicknessUnit * nodeStyle.colors[color].hover.lineThickness;
-            } else {
-                // 기본 상태이면
-                ctx.fillStyle = nodeStyle.colors[color].default.fill;
-                ctx.strokeStyle = nodeStyle.colors[color].default.stroke;
-                ctx.lineWidth = thicknessUnit * nodeStyle.colors[color].default.lineThickness;
-            }
+            ctx.fillStyle = getHSL(color.fill);
+            ctx.strokeStyle = getHSL(color.stroke);
+            ctx.lineWidth = thicknessUnit * color.lineThickness;
             
             // 노드 그리기(모양 변환)
-            const transformedPolygon = nodeStyle.shapes[key].polygon.map((point: { x: number, y: number }) => {
+            const transformedPolygon = nodeStyle.shape[key].polygon.map((point: { x: number, y: number }) => {
                 return {
                     x: xMoved + point.x * gridSpacing,
                     y: yMoved + point.y * gridSpacing
@@ -152,7 +140,7 @@ export default class Node{
             });
             
             ctx.beginPath(); // 그리기 시작
-            drawRoundPolygon(ctx, transformedPolygon, gridSpacing / 10); // 노드 그리기
+            drawRoundPolygon(ctx, transformedPolygon, gridSpacing/10); // 노드 그리기
             ctx.fill(); // 노드 내부 채우기
             ctx.stroke(); // 테두리 그리기
             ctx.closePath(); // 그리기 끝
@@ -177,8 +165,9 @@ export default class Node{
         let test = false;
 
         // 노드 바운더리 안에 있는지 여부 반환
-        (Object.keys(nodeStyle.shapes) as StyleShape[]).forEach((key:StyleShape) => {
-            const transformedPolygon = nodeStyle.shapes[key].polygon.map((point: { x: number, y: number }) => {
+        const nodeStyle:TypeStyle = nodeStyleManager.getNodeStyle(this.type, this.state);
+        (Object.keys(nodeStyle.shape) as NodeShape[]).forEach((key:NodeShape) => {
+            const transformedPolygon = nodeStyle.shape[key].polygon.map((point: { x: number, y: number }) => {
                 return {
                     x: this.nodeOffset().x + point.x * gridSpacing,
                     y: this.nodeOffset().y + point.y * gridSpacing

@@ -189,7 +189,7 @@ export class Controller {
                 if (socket.isInside({ x: e.offsetX, y: e.offsetY })) {
                     socket.isHover = true;
                     viewport.hoveredSocket = socket;
-                    console.log('소켓 호버');
+                    // console.log('소켓 호버');
 
                     isStop = true;
                 }
@@ -200,7 +200,7 @@ export class Controller {
             if (node.isInside({ x: e.offsetX, y: e.offsetY })) {
                 node.isHover = true;
                 viewport.hoveredNode = node;
-                console.log('노드 호버');
+                // console.log('노드 호버');
 
                 return true;
             }
@@ -444,7 +444,7 @@ export class Controller {
             createNode({ 
                 x: (canvas.width / 2 - viewport.offset.x) / viewport.zoom,
                 y: (canvas.height / 2 - viewport.offset.y) / viewport.zoom
-            }, 'test');
+            }, 'operator');
             render();
         }
 

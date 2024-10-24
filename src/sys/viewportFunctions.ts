@@ -15,7 +15,7 @@ import { drawRoundPolygon } from "../func/functions.js";
 
 
 
-export function createNode(startPos:TPoint, type:string){
+export function createNode(startPos:TPoint, type:NodeType){
     viewport.nodes.push(new Node(startPos, type));
     render();
 }

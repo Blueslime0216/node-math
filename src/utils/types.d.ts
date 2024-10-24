@@ -80,43 +80,51 @@ interface IMouseDraggedSize{
 // ==================================================
 // 노드 스타일에 관한 타입들
 // ==================================================
-type StyleColor = 'blue' | 'sky';
-type StyleShape = 'header' | 'connector' | 'body';
-type StyleType = 'default';
-
-interface ColorState {
-    fill: string;
-    stroke: string;
-    lineThickness: number;
+// HSL 타입 정의
+interface HSLColor {
+    h: number;  // Hue (0 ~ 360)
+    s: number;  // Saturation (0 ~ 100) as percentage
+    l: number;  // Lightness (0 ~ 100) as percentage
+    a: number;  // Alpha (0 ~ 1) as transparency
 }
 
-interface nodeColorChip {
-    default: ColorState;
-    hover: ColorState;
-    selected: ColorState;
-    dragSelected: ColorState;
+// ColorSet에 hsl 객체 포함
+interface ColorSet {
+    fill: HSLColor;       // 채움 색상
+    stroke: HSLColor;     // 테두리 색상
+    lineThickness: number;    // 테두리 두께
 }
-interface socketColorChip {
-    default: ColorState;
-    hover: ColorState;
-    selected: ColorState;
-    connected: ColorState;
-}
-
-interface nodeShapeChip {
-    color: StyleColor;
+interface ShapeSet {
+    color: NodeColor;
     polygon: Polygon;
 }
-interface socketShapeChip {
-    color: StyleColor;
-    type: StyleType;
+
+// 각 노드 타입의 스타일 정의
+interface TypeStyle {
+    color:{
+        keyColor: ColorSet;
+        bodyColor: ColorSet;
+    }
+    shape: Record<NodeShape, ShapeSet>
 }
 
-interface NodeStyle {
-    colors: Record<StyleColor, nodeColorChip>;
-    shapes: Record<StyleShape, nodeShapeChip>;
-}
+type NodeColor = 'keyColor' | 'bodyColor';
+type NodeShape = 'head' | 'connector' | 'body';
+type NodeType = 'operator'// | 'value';
+type NodeState = 'default' | 'hovered' | 'selected' | 'dragSelected';
+
+type SocketColor = 'blue';
+type SocketType = 'float'// | 'int';
+type SocketShape = 'circle' // | 'square' | 'diamond' | 'hexagon';
+
+// 소켓 스타일 정의
 interface SocketStyle {
-    colors: Record<StyleColor, socketColorChip>;
-    shapes: Record<string, socketShapeChip>;
+    color: Record<SocketColor, ColorSet>;
+    shape: Record<SocketType, SocketTypeStyle>;
+}
+
+// 각 소켓 타입의 스타일 정의
+interface SocketTypeStyle {
+    color: SocketColor;
+    shape: SocketShape;
 }

@@ -57,6 +57,9 @@ window.addEventListener('mouseup', (e) => {
     }
     $mouse.mouseup(e);
 });
+window.addEventListener('dblclick', (e) => {
+    controller.dblclick(e);
+});
 canvas.addEventListener('wheel', (e) => {
     $mouse.wheel(e);
 });

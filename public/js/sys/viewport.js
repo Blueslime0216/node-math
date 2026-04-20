@@ -4,7 +4,6 @@
 // ====================================================================================================
 import { $_ } from "../utils/domUtils.js";
 export class Viewport {
-    // selectedSocket:Socket|null = null; // 선택된 소켓
     constructor(canvas) {
         /*
             ( this.offset = this._offsetStart + this._offsetMoving )
@@ -27,6 +26,9 @@ export class Viewport {
         this.dragSelectedNodes = new Set(); // 드래그 선택영역 안에 있는 노드들
         this.temp_nodeBeforeDragSelect = new Set(); // 드래그 선택 이전에 선택되어 있었다가 Shift로 삭제된 노드들
         this.hoveredSocket = null; // 호버된 소켓
+        // selectedSocket:Socket|null = null; // 선택된 소켓
+        this.connections = []; // 노드간 연결들
+        this.tempConnection = null; // 드래그 중인 임시 연결선
         this._canvas = canvas;
         this._ctx = this._canvas.getContext('2d');
     }

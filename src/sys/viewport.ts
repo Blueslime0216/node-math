@@ -37,6 +37,9 @@ export class Viewport{
     temp_nodeBeforeDragSelect:Set<Node> = new Set(); // 드래그 선택 이전에 선택되어 있었다가 Shift로 삭제된 노드들
     hoveredSocket:Socket|null = null; // 호버된 소켓
     // selectedSocket:Socket|null = null; // 선택된 소켓
+    
+    connections:Connection[] = []; // 노드간 연결들
+    tempConnection:{socket:Socket, endPoint:TPoint}|null = null; // 드래그 중인 임시 연결선
 
     constructor(canvas:HTMLCanvasElement){
         this._canvas = canvas

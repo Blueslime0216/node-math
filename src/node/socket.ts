@@ -14,6 +14,8 @@ export default class Socket{
 
     private _connectedSocket:Socket|null = null; // 연결된 소켓
 
+    value: number = 0; // 계산된 캐시값
+
     isHovered:boolean = false; // 호버 중 인지 여부
     isSelected:boolean = false; // 선택 중 인지 여부
     isConnected:boolean = false; // 연결 중 인지 여부

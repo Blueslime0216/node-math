@@ -5,6 +5,7 @@ export default class Socket {
     constructor(node, type, direction, index) {
         this._id = Math.random().toString(36).substring(2, 18); // 소켓 아이디
         this._connectedSocket = null; // 연결된 소켓
+        this.value = 0; // 계산된 캐시값
         this.isHovered = false; // 호버 중 인지 여부
         this.isSelected = false; // 선택 중 인지 여부
         this.isConnected = false; // 연결 중 인지 여부

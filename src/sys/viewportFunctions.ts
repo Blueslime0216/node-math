@@ -27,11 +27,20 @@ export function render(){
     ctx.fillStyle = 'hsl(0, 0%, 10%)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // 연산 수행 (화면 그리기 전 최신화)
+    viewport.nodes.forEach(node => node.evaluate());
+
     // 그리드 그리기
     drawGrid();
 
     // 노드 그리기
     drawNodes();
+
+    // 연결선 그리기
+    drawConnections();
+    if (viewport.tempConnection) {
+        drawTempConnection();
+    }
 
     // 선택 영역 그리기
     if (state.isDragSelecting && !state.isDragSelecting_cancel) {
@@ -230,4 +239,43 @@ function drawEffects(){
             effectStateManager.keyboardZoomCenterSign,
         );
     }
+}
+
+function drawConnections() {
+    viewport.connections.forEach(conn => {
+        const outPos = { x: conn.output.x, y: conn.output.y };
+        const inPos = { x: conn.input.x, y: conn.input.y };
+        drawBezierCurve(outPos, inPos, 'hsl(210, 70%, 50%)'); // 파란색 기본
+    });
+}
+
+function drawTempConnection() {
+    if (!viewport.tempConnection) return;
+    const socket = viewport.tempConnection.socket;
+    const startPos = { x: socket.x, y: socket.y };
+    const endPos = viewport.tempConnection.endPoint;
+    
+    // 방향에 따라 커브 그리기
+    if (socket.direction === 'output') {
+        drawBezierCurve(startPos, endPos, 'hsl(210, 70%, 50%, 0.5)');
+    } else {
+        drawBezierCurve(endPos, startPos, 'hsl(210, 70%, 50%, 0.5)');
+    }
+}
+
+function drawBezierCurve(startPos: TPoint, endPos: TPoint, color: string) {
+    const cpOffset = Math.abs(endPos.x - startPos.x) * 0.5 + 50;
+    
+    ctx.beginPath();
+    ctx.moveTo(startPos.x, startPos.y);
+    ctx.bezierCurveTo(
+        startPos.x + cpOffset, startPos.y,
+        endPos.x - cpOffset, endPos.y,
+        endPos.x, endPos.y
+    );
+    
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.closePath();
 }

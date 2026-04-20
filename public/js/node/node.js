@@ -40,6 +40,8 @@ export default class Node {
     constructor(startPos, type) {
         this._id = Math.random().toString(36).substring(2, 18); // 노드 아이디
         this._name = '더하기'; // 노드 이름
+        // 변수 노드용 내부 값
+        this.internalValue = 0;
         this._dragStart = { x: 0, y: 0 }; // 드래그 시작 위치
         this._dragOffset = { x: 0, y: 0 }; // 드래그 할 때 움직이는 거리
         this._bounds = { width: 0, height: 0 }; // 노드의 바운더리
@@ -52,15 +54,44 @@ export default class Node {
             output: [], // 노드의 출력 소켓들
             all: [], // 노드의 소켓들
         }; // 노드의 소켓들
+        this.isDirty = true; // 값이 변경되어 재계산이 필요한지 여부
         this.position = startPos; // 노드의 x좌표
         this.type = type; // 노드 타입
         // 소켓 생성
         switch (type) {
-            case 'operator':
+            case 'add':
+                this.name = '더하기';
                 this.createSockets('float', 'input', 2);
-                this.createSockets('float', 'output', 2);
+                this.createSockets('float', 'output', 1);
+                break;
+            case 'subtract':
+                this.name = '빼기';
+                this.createSockets('float', 'input', 2);
+                this.createSockets('float', 'output', 1);
+                break;
+            case 'multiply':
+                this.name = '곱하기';
+                this.createSockets('float', 'input', 2);
+                this.createSockets('float', 'output', 1);
+                break;
+            case 'divide':
+                this.name = '나누기';
+                this.createSockets('float', 'input', 2);
+                this.createSockets('float', 'output', 1);
                 break;
             case 'value':
+                this.name = '상수';
+                this.internalValue = 10;
+                this.createSockets('float', 'output', 1);
+                break;
+            case 'variable':
+                this.name = '변수';
+                this.createSockets('float', 'input', 1);
+                this.createSockets('float', 'output', 1);
+                break;
+            case 'display':
+                this.name = '표시';
+                this.createSockets('float', 'input', 1);
                 this.createSockets('float', 'output', 1);
                 break;
         }
@@ -72,6 +103,76 @@ export default class Node {
     get y() { return this.position.y; }
     set x(value) { this.position.x = value; }
     set y(value) { this.position.y = value; }
+    markDirty() {
+        if (this.isDirty)
+            return; // 이미 dirty면 하위도 dirty
+        this.isDirty = true;
+        // 내 출력 소켓에 연결된 입력 소켓을 가진 하위 노드 찾기
+        viewport.connections.forEach(conn => {
+            if (conn.output.parentNode === this) {
+                conn.input.parentNode.markDirty();
+            }
+        });
+    }
+    evaluate() {
+        if (!this.isDirty)
+            return;
+        // 1. 입력 값 가져오기 (Pull)
+        const inputValues = this.sockets.input.map(socket => {
+            if (socket.connectedSocket) {
+                const parentNode = socket.connectedSocket.parentNode;
+                if (parentNode.isDirty) {
+                    parentNode.evaluate();
+                }
+                return socket.connectedSocket.value;
+            }
+            return 0; // 연결 안 된 경우 기본값
+        });
+        // 2. 현재 노드 타입에 따른 연산 수행
+        switch (this.type) {
+            case 'add':
+                const addRes = inputValues.reduce((a, b) => a + b, 0);
+                if (this.sockets.output.length > 0)
+                    this.sockets.output[0].value = addRes;
+                this.internalValue = addRes;
+                break;
+            case 'subtract':
+                const subRes = inputValues.length >= 2 ? inputValues[0] - inputValues[1] : (inputValues[0] || 0);
+                if (this.sockets.output.length > 0)
+                    this.sockets.output[0].value = subRes;
+                this.internalValue = subRes;
+                break;
+            case 'multiply':
+                const mulRes = inputValues.length >= 2 ? inputValues[0] * inputValues[1] : 0;
+                if (this.sockets.output.length > 0)
+                    this.sockets.output[0].value = mulRes;
+                this.internalValue = mulRes;
+                break;
+            case 'divide':
+                const divRes = inputValues.length >= 2 ? (inputValues[1] !== 0 ? inputValues[0] / inputValues[1] : 0) : 0;
+                if (this.sockets.output.length > 0)
+                    this.sockets.output[0].value = divRes;
+                this.internalValue = divRes;
+                break;
+            case 'value':
+                if (this.sockets.output.length > 0)
+                    this.sockets.output[0].value = this.internalValue;
+                break;
+            case 'variable':
+                const val = inputValues.length > 0 && this.sockets.input[0].connectedSocket ? inputValues[0] : this.internalValue;
+                this.internalValue = val;
+                if (this.sockets.output.length > 0)
+                    this.sockets.output[0].value = val;
+                break;
+            case 'display':
+                const dispVal = inputValues.length > 0 ? inputValues[0] : 0;
+                this.internalValue = dispVal;
+                if (this.sockets.output.length > 0)
+                    this.sockets.output[0].value = dispVal;
+                break;
+        }
+        this.isDirty = false;
+    }
     get width() { return this.bounds.width; }
     get height() { return this.bounds.height; }
     set width(value) { this.bounds.width = value; }
@@ -126,10 +227,21 @@ export default class Node {
         });
         // 노드 이름 적기
         ctx.fillStyle = 'hsl(0, 0%, 100%)'; // 글자 색상 설정
-        ctx.font = `${gridSpacing / 2.5}px EliceDigitalBaeum_Regular`; // 글자 크기 및 글꼴 설정
+        ctx.font = `${gridSpacing / 2.5}px EliceDigitalBaeum_Regular, sans-serif`; // 글자 크기 및 글꼴 설정
         ctx.textAlign = 'left'; // 텍스트 정렬 설정
         ctx.textBaseline = 'middle'; // 텍스트 베이스라인 설정
         ctx.fillText(this.name, xMoved - width / 2 + gridSpacing / 4, yMoved); // 텍스트 쓰기
+        // 변수 또는 상수 노드, 표시 노드인 경우 값 표시
+        if (this.type === 'variable' || this.type === 'value' || this.type === 'display') {
+            ctx.textAlign = 'center';
+            if (this.type === 'value')
+                ctx.fillStyle = 'hsl(10, 60%, 80%)';
+            else if (this.type === 'display')
+                ctx.fillStyle = 'hsl(280, 70%, 80%)';
+            else
+                ctx.fillStyle = 'hsl(150, 70%, 80%)';
+            ctx.fillText(this.internalValue.toFixed(2), xMoved, yMoved + gridSpacing * 1.5);
+        }
         // 소켓 그리기
         this.sockets.all.forEach(socket => {
             socket.draw();

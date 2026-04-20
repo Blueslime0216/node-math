@@ -107,7 +107,7 @@ interface TypeStyle {
 
 type NodeColor = 'keyColor'|'bodyColor';
 type NodeShape = 'head'|'connector'|'body';
-type NodeType = 'operator'|'value';
+type NodeType = 'add'|'subtract'|'multiply'|'divide'|'value'|'variable'|'display';
 type NodeState = 'default'|'hovered'|'selected'|'dragSelected';
 
 type TSocketDirection = 'input'|'output';
@@ -133,4 +133,10 @@ interface SocketTypeStyle {
 interface SocketStyle_return {
     color: ColorSet;
     shape: Record<SocketType, SocketTypeStyle>;
+}
+
+// 연결 시스템을 위한 인터페이스
+interface Connection {
+    output: import('../node/socket.js').default;
+    input: import('../node/socket.js').default;
 }

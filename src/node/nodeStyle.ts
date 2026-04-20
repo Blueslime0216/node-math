@@ -80,7 +80,28 @@ class NodeStyleManager {
     constructor() {
         // 각 노드 타입별 기본 색상 설정
         this.nodeTypeStyles = {
-            operator: {
+            add: {
+                color:{
+                    keyColor: baseColors,
+                    bodyColor: { ...baseColors, fill: { h: 210, s: 50, l: 40, a: 0.5 } },
+                },
+                shape: baseShapes,
+            },
+            subtract: {
+                color:{
+                    keyColor: baseColors,
+                    bodyColor: { ...baseColors, fill: { h: 210, s: 50, l: 40, a: 0.5 } },
+                },
+                shape: baseShapes,
+            },
+            multiply: {
+                color:{
+                    keyColor: baseColors,
+                    bodyColor: { ...baseColors, fill: { h: 210, s: 50, l: 40, a: 0.5 } },
+                },
+                shape: baseShapes,
+            },
+            divide: {
                 color:{
                     keyColor: baseColors,
                     bodyColor: { ...baseColors, fill: { h: 210, s: 50, l: 40, a: 0.5 } },
@@ -91,6 +112,20 @@ class NodeStyleManager {
                 color:{
                     keyColor: { ...baseColors, fill: { h: 10, s: 60, l: 50, a: 1 } },
                     bodyColor: { ...baseColors, fill: { h: 10, s: 40, l: 40, a: 0.5 } },
+                },
+                shape: baseShapes,
+            },
+            variable: {
+                color:{
+                    keyColor: { ...baseColors, fill: { h: 150, s: 70, l: 50, a: 1 } },
+                    bodyColor: { ...baseColors, fill: { h: 150, s: 50, l: 40, a: 0.5 } },
+                },
+                shape: baseShapes,
+            },
+            display: {
+                color:{
+                    keyColor: { ...baseColors, fill: { h: 280, s: 70, l: 60, a: 1 } },
+                    bodyColor: { ...baseColors, fill: { h: 280, s: 50, l: 40, a: 0.5 } },
                 },
                 shape: baseShapes,
             },

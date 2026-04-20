@@ -4,9 +4,9 @@
 import { $_ } from "../utils/domUtils.js";
 import { keydownInOrder } from "../utils/functions.js";
 import viewport from "./viewport.js";
-import { createNode } from "./viewportFunctions.js";
 import $mouse from "./mouse.js";
 import $keyboard from "./keyboard.js";
+import pieMenu from "./pieMenu.js";
 import { zoomApply, animateStart } from "../func/functions.js";
 import effectStateManager from "../class/effectStateManager.js";
 import { render } from "./viewportFunctions.js";
@@ -16,8 +16,65 @@ export class Controller {
     constructor() {
         this._isSnapToGrid = false; // 그리드에 맞추기 여부
         this._viewportOffsetMoved_whileDragging = { width: 0, height: 0 }; // 노드를 드래그하는 동안 움직인 시점 이동 거리
+        this._isChangingVariable = false; // 변수 노드 값 조절 중인지 여부
     }
     mousedown(e) {
+        // [ 소켓 드래그 연결 및 분리 기능 ]
+        if (viewport.hoveredSocket) {
+            const socket = viewport.hoveredSocket;
+            // [ 마우스 왼쪽 클릭 ]
+            if ($mouse.isMouseDown.left) {
+                // 만약 입력 소켓이고 이미 연결되어 있다면 -> 선을 뽑기 (Detach)
+                if (socket.direction === 'input' && socket.connectedSocket) {
+                    const outputSocket = socket.connectedSocket;
+                    // 연결 데이터에서 제거
+                    viewport.connections = viewport.connections.filter(c => c.input !== socket);
+                    // 소켓간 연결 해제 및 연산 업데이트
+                    socket.disconnect();
+                    outputSocket.disconnect();
+                    socket.parentNode.markDirty();
+                    // 마우스에 들려있는 시작점을 '상대방 출력 소켓'으로 설정 (선을 뽑는 효과)
+                    viewport.tempConnection = {
+                        socket: outputSocket,
+                        endPoint: { x: e.offsetX, y: e.offsetY }
+                    };
+                }
+                else {
+                    // 일반적인 연결 시작
+                    viewport.tempConnection = {
+                        socket: socket,
+                        endPoint: { x: e.offsetX, y: e.offsetY }
+                    };
+                }
+                return; // 소켓 클릭 시 노드 선택 로직 건너뛰기
+            }
+            // [ 마우스 오른쪽 클릭 ] -> 소켓 연결 즉시 끊기
+            if ($mouse.isMouseDown.right) {
+                const isInput = socket.direction === 'input';
+                // 해당 소켓과 관련된 모든 연결 제거
+                viewport.connections = viewport.connections.filter(c => {
+                    if (isInput ? c.input === socket : c.output === socket) {
+                        c.input.disconnect();
+                        c.output.disconnect();
+                        c.input.parentNode.markDirty();
+                        return false;
+                    }
+                    return true;
+                });
+                render();
+                return;
+            }
+        }
+        // [ 변수 노드 값 조절 기능 ]
+        if ($mouse.isMouseDown.left && viewport.hoveredNode && viewport.hoveredNode.type === 'variable') {
+            // 마우스 위치가 변수 숫자 표시 영역(아랫부분)인지 대략적으로 확인
+            const gridSpacing = viewport.gridSpacing;
+            const nodeOffset = viewport.hoveredNode.nodeOffset();
+            if (e.offsetY > nodeOffset.y + gridSpacing) {
+                this._isChangingVariable = true;
+                return;
+            }
+        }
         // [ 노드 드래그 선택 취소 기능 ] 노드 드래그 선택 중 [ 마우스 오른쪽 클릭 ] : 노드 드래그 선택 취소
         if ($mouse.isMouseDown.right && state.isDragSelecting) {
             state.isDragSelecting = false;
@@ -118,10 +175,49 @@ export class Controller {
         }
         render();
     }
+    dblclick(e) {
+        // [ 변수 값 변경 (더블클릭) 기능 ]
+        if (viewport.hoveredNode && viewport.hoveredNode.type === 'variable') {
+            const gridSpacing = viewport.gridSpacing;
+            const nodeOffset = viewport.hoveredNode.nodeOffset();
+            // 변수 값 표시 영역 클릭 확인
+            if (e.offsetY > nodeOffset.y + gridSpacing) {
+                // HTML Input 생성
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.value = viewport.hoveredNode.internalValue.toString();
+                input.style.position = 'absolute';
+                input.style.left = `${e.clientX - 30}px`;
+                input.style.top = `${e.clientY - 15}px`;
+                input.style.width = '60px';
+                input.style.height = '30px';
+                input.style.zIndex = '2000';
+                document.body.appendChild(input);
+                input.focus();
+                input.select();
+                const finishEdit = () => {
+                    if (input.parentNode) {
+                        const newVal = parseFloat(input.value);
+                        if (!isNaN(newVal)) {
+                            viewport.hoveredNode.internalValue = newVal;
+                            viewport.hoveredNode.markDirty(); // 값 변경 시 dirty 전파
+                        }
+                        input.remove();
+                        render();
+                    }
+                };
+                input.addEventListener('blur', finishEdit);
+                input.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Enter')
+                        finishEdit();
+                });
+            }
+        }
+    }
     mousedragstart(e) {
         // [ 노드 드래그 선택 기능 ]
-        // 빈 공간을 드래그하면 드래그 선택
-        if ($mouse.isMouseDown.left && !viewport.hoveredNode) {
+        // 빈 공간을 드래그하면 드래그 선택 (소켓 위도 아닐 때)
+        if ($mouse.isMouseDown.left && !viewport.hoveredNode && !viewport.hoveredSocket) {
             // temp로 복사해두기
             viewport.temp_nodeBeforeDragSelect = new Set(viewport.selectedNodes);
             state.isDragSelecting = true;
@@ -140,6 +236,21 @@ export class Controller {
         if ($mouse.isMouseDragging.wheel) {
             viewport.offsetMoving.width = $mouse.draggedSize.wheel.width;
             viewport.offsetMoving.height = $mouse.draggedSize.wheel.height;
+        }
+        // [ 임시 연결선 드래그 기능 ]
+        if (viewport.tempConnection) {
+            viewport.tempConnection.endPoint = { x: e.offsetX, y: e.offsetY };
+            render();
+            // 아래 호버 로직은 계속 수행하여 타겟 소켓을 찾음
+        }
+        // [ 변수 노드 값 조절 기능 ]
+        if (this._isChangingVariable && viewport.hoveredNode && viewport.hoveredNode.type === 'variable') {
+            // 마우스 x 이동량에 따라 값 변경
+            const sensitivity = $keyboard.isKeyDown('ControlLeft') ? 1 : 0.05;
+            viewport.hoveredNode.internalValue += e.movementX * sensitivity;
+            viewport.hoveredNode.markDirty(); // 값 변경 시 dirty 전파
+            render();
+            return;
         }
         // [ 노드 호버 효과 ]
         // 비우기
@@ -238,6 +349,31 @@ export class Controller {
             // 변경된 시점 적용하기
             viewport.offsetStart = viewport.offset;
             viewport.offsetMoving = { width: 0, height: 0 };
+        }
+        // [ 소켓 연결 적용 기능 ]
+        if (viewport.tempConnection && e.button === 0) {
+            if (viewport.hoveredSocket && viewport.hoveredSocket !== viewport.tempConnection.socket) {
+                const s1 = viewport.tempConnection.socket;
+                const s2 = viewport.hoveredSocket;
+                // 방향이 다르고 같은 노드가 아닐 때만 연결
+                if (s1.direction !== s2.direction && s1.parentNode !== s2.parentNode) {
+                    const outputSocket = s1.direction === 'output' ? s1 : s2;
+                    const inputSocket = s1.direction === 'input' ? s1 : s2;
+                    // 기존에 inputSocket에 연결된 선이 있으면 제거 (1 input은 1 output만 받음)
+                    viewport.connections = viewport.connections.filter(c => c.input !== inputSocket);
+                    viewport.connections.push({ output: outputSocket, input: inputSocket });
+                    outputSocket.connect(inputSocket);
+                    inputSocket.connect(outputSocket);
+                    // 연결 변경 시 새 입력 노드부터 dirty 전파
+                    inputSocket.parentNode.markDirty();
+                }
+            }
+            viewport.tempConnection = null;
+            render();
+        }
+        // [ 변수 변경 취소 ]
+        if (this._isChangingVariable && e.button === 0) {
+            this._isChangingVariable = false;
         }
         // [ 노드 드래그 기능 ]
         // 노드를 드래그 중이고, 마우스 왼쪽 클릭 중이면
@@ -368,17 +504,9 @@ export class Controller {
     }
     keypress(e) {
         // [ 노드 생성 기능 ]
-        // [ Shift + A ] 를 누르면 노드 생성
+        // [ Shift + A ] 를 누르면 노드 생성 (파이 메뉴 등장)
         if (keydownInOrder(['ShiftLeft', 'KeyA']) && !$keyboard.isKeyHold('ShiftLeft')) {
-            // addNodeStart();
-            const types = ['operator', 'value'];
-            const index = $keyboard.isKeyDown('Numpad1') ? 1 : 0;
-            const nodeType = types[index];
-            createNode({
-                x: (canvas.width / 2 - viewport.offset.x) / viewport.zoom,
-                y: (canvas.height / 2 - viewport.offset.y) / viewport.zoom
-            }, nodeType);
-            render();
+            pieMenu.show($mouse.mousePos.x, $mouse.mousePos.y, canvas.offsetLeft, canvas.offsetTop);
         }
         // [ 노드 드래그 선택 기능 ] 이전에 선택되어 있던 노드들 처리 방법 Shift로 선택하기
         if (state.isDragSelecting && $keyboard.isKeyDown('ShiftLeft')) { // Shift를 누르면

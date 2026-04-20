@@ -35,7 +35,7 @@ export default class Node{
     get bounds(){return this._bounds}
     set bounds(value:TSize){this._bounds = value}
 
-    type:NodeType = 'operator'; // 노드의 타입
+    type:NodeType = 'add'; // 노드의 타입
 
     private _isHover:boolean = false; // 마우스가 노드 위에 있는지 여부
     private _isSelected:boolean = false; // 노드가 선택되었는지 여부

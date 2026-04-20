@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "public/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc",
     "watch": "tsc -w"
   },
   "keywords": [],
